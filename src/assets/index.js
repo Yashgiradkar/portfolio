@@ -18,8 +18,12 @@ import reactjs from "./tech/reactjs.png";
 import tailwind from "./tech/tailwind.png";
 import threejs from "./tech/threejs.svg";
 
+
+
 import ieee from "./company/ieee.png";
 import s2p from "./company/s2p.png";
+import whitehorse from "./company/whitehorse.jpg";
+
 
 import dashboard from "./dashboard.png";
 import productSite from "./productSite.png";
@@ -50,6 +54,7 @@ export {
   threejs,
   ieee,
   s2p,
+  whitehorse,
   dashboard,
   productSite,
   androidApp,

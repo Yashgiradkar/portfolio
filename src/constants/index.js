@@ -12,6 +12,7 @@ import {
     nodejs,
     mongodb,
     git,
+    whitehorse,
     ieee,
     s2p,
     androidApp,
@@ -39,19 +40,19 @@ export const navLinks = [
 
 const services = [
     {
-        title: "Web Developer",
+        title: "Backend Developer",
         icon: web,
-    },
-    {
-        title: "Android Developer",
-        icon: mobile,
     },
     {
         title: "Frontend Developer",
         icon: backend,
     },
     {
-        title: "Analytical Skills",
+        title: "Android Developer",
+        icon: mobile,
+    },
+    {
+        title: "Blockchain Developer",
         icon: creator,
     },
 ];
@@ -96,24 +97,34 @@ const technologies = [
     {
         name: "git",
         icon: git,
-    },
+    }
     
 ];
 
 const experiences = [
     {
+        title: "Full Stack Developer (Trainee)",
+        company_name: "Whitehorse Business Solutions",
+        icon: whitehorse,
+        iconBg: "#383E56",
+        date: "July 2023 - Aug 2023",
+        points: [
+            "Transformed ideas into captivating web pages using HTML and CSS andJavaScript's logic for interactivity. I rely on Node.js and Express.js to drive the server, while MongoDB ensures secure and efficient data storage for each project.crafted elegant user- experience, optimizing user journeys.",
+        ],
+    },
+    {
         title: "Software Tester",
         company_name: "S2P Edutech",
         icon: s2p,
         iconBg: "#383E56",
-        date: "Aug22 - Sep22",
+        date: "Aug 2022 - Sep 2022",
         points: [
             "Manually tested REST Api requests with Postman and automated tested requests with Jest Framework,Test Cases Report, Json Objects",
         ],
     },
     {
         title: "Campus Treasurer",
-        company_name: "IEEE",
+        company_name: "Institute of Electrical and Electronics Engineers (IEEE)",
         icon: ieee,
         iconBg: "#E6DEDD",
         date: "Jan 2022 - Jan 2023",
@@ -143,10 +154,10 @@ const testimonials = [
     },
     {
         testimonial:
-            "Always self-motivated and he is committed to lifelong learning!",
-        name: "Ashwini Bhagat",
-        designation: "Teacher Guardian",
-        company: "S. B. Jain Institute",
+            "Have seen good leadership, team player skills. Always self-motivated and he is committed to lifelong learning!",
+        name: "Sohel Sheikh",
+        designation: "Managing Director",
+        company: "Whitehorse Business Solutions",
         image: "https://randomuser.me/api/portraits/women/6.jpg",
     },
 ];
