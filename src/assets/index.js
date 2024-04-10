@@ -26,6 +26,7 @@ import whitehorse from "./company/whitehorse.jpg";
 
 
 import dashboard from "./dashboard.png";
+import devOps from "./devOps.png"
 import productSite from "./productSite.png";
 import androidApp from "./androidApp.png";
 import virtualAssistant from "./virtualAssistant.png";
@@ -56,6 +57,7 @@ export {
   s2p,
   whitehorse,
   dashboard,
+  devOps,
   productSite,
   androidApp,
   virtualAssistant,

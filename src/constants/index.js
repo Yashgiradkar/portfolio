@@ -4,7 +4,6 @@ import {
     creator,
     web,
     javascript,
-    android,
     html,
     css,
     reactjs,
@@ -17,6 +16,7 @@ import {
     s2p,
     androidApp,
     dashboard,
+    devOps,
     productSite,
     algoTrading,
     virtualAssistant,
@@ -48,11 +48,11 @@ const services = [
         icon: backend,
     },
     {
-        title: "Android Developer",
+        title: "Full Stack Developer",
         icon: mobile,
     },
     {
-        title: "Blockchain Developer",
+        title: "DevOps Developer",
         icon: creator,
     },
 ];
@@ -69,10 +69,6 @@ const technologies = [
     {
         name: "JavaScript",
         icon: javascript,
-    },
-    {
-        name: "Android",
-        icon: android,
     },
     {
         name: "React JS",
@@ -146,7 +142,7 @@ const testimonials = [
     },
     {
         testimonial:
-            "He is Continously involved in learning new Technologies.",
+            "Whenever we ask him to perform a task, he does it quickly and efficiently. Highly talented programmer. My go-to person, and he has never failed to deliver what I have asked for. An individual who is intelligent, trustworthy, and professional.",
         name: "Mrudula Nimbharte",
         designation: "HOD CSE",
         company: "S. B. Jain Institute",
@@ -182,6 +178,36 @@ const projects = [
             },
         ],
         image: dashboard,
+        source_code_link: "https://github.com/",
+    },
+    
+    {
+        name: "Vercel Counting System",
+        description:
+            " Implemented an end-to-end system using AWS S3 for efficient storage of files in a secure bucket.Automated build process and deployment of the application using Docker.Utilized Redis to implement a robust publish/subscribe mechanism within the server. Employed a reverse proxy to effectively manage and control the flow of network traffic.",
+        tags: [
+            {
+                name: "AWS S3",
+                color: "blue-text-gradient",
+            },
+            {
+                name: "Docker",
+                color: "green-text-gradient",
+            },
+            {
+                name: "Redis",
+                color: "pink-text-gradient",
+            },
+            {
+                name: "Nginx",
+                color: "blue-text-gradient",
+            },
+            {
+                name: "React",
+                color: "green-text-gradient",
+            }
+        ],
+        image: devOps,
         source_code_link: "https://github.com/",
     },
     {
