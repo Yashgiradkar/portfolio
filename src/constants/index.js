@@ -21,6 +21,8 @@ import {
     algoTrading,
     virtualAssistant,
     threejs,
+    emailNewsletter,
+    fastApi
 } from "../assets";
 
 export const navLinks = [
@@ -39,12 +41,12 @@ export const navLinks = [
 ];
 
 const services = [
+    // {
+    //     title: "Backend Developer",
+    //     icon: web,
+    // },
     {
-        title: "Backend Developer",
-        icon: web,
-    },
-    {
-        title: "Frontend Developer",
+        title: "Application Developer",
         icon: backend,
     },
     {
@@ -160,24 +162,53 @@ const testimonials = [
 
 const projects = [
     {
-        name: "Admin Dashboard",
+        name: "Byte Email Newsletter Platform",
         description:
-            "A web-based platform that allows users to access dashboards, a variety of charts, apps such as editors, calendars, as well as different pages where information can be created, edited or deleted, with dark mode.",
+            "Developed a web application using Next.js and TypeScript, integrating Clerk for authentication. The zeroBounce API ensures email verification accuracy. Additionally, I implemented AstraDB for data storage and offered users the ability to customize their profiles. The application features three distinct pricing plans, managed through Stripe webhook integration. AWS SES enables users to receive transactional emails seamlessly.",
         tags: [
             {
-                name: "react",
+                name: "NextJS",
                 color: "blue-text-gradient",
             },
             {
-                name: "sync fusion",
+                name: "Typescript",
                 color: "green-text-gradient",
             },
             {
-                name: "tailwind",
+                name: "AWS SES",
+                color: "pink-text-gradient",
+            },
+            {
+                name: "Stripe",
+                color: "green-text-gradient",
+            },
+            {
+                name: "AstraDB",
+                color: "blue-text-gradient",
+            },
+        ],
+        image: emailNewsletter,
+        source_code_link: "https://github.com/",
+    },
+    {
+        name: "Country List Api",
+        description:
+            "Created high-performance API with Hono and Cloudflare Workers for globally distributed serverless code execution. The project used Redis as a fast database solution, ensuring excellent performance and scalability.",
+        tags: [
+            {
+                name: "Hono",
+                color: "blue-text-gradient",
+            },
+            {
+                name: "Cloudflare",
+                color: "green-text-gradient",
+            },
+            {
+                name: "Redis",
                 color: "pink-text-gradient",
             },
         ],
-        image: dashboard,
+        image: fastApi,
         source_code_link: "https://github.com/",
     },
     
@@ -208,6 +239,27 @@ const projects = [
             }
         ],
         image: devOps,
+        source_code_link: "https://github.com/",
+    },
+    {
+        name: "Admin Dashboard",
+        description:
+            "A web-based platform that allows users to access dashboards, a variety of charts, apps such as editors, calendars, as well as different pages where information can be created, edited or deleted, with dark mode.",
+        tags: [
+            {
+                name: "react",
+                color: "blue-text-gradient",
+            },
+            {
+                name: "sync fusion",
+                color: "green-text-gradient",
+            },
+            {
+                name: "tailwind",
+                color: "pink-text-gradient",
+            },
+        ],
+        image: dashboard,
         source_code_link: "https://github.com/",
     },
     {
@@ -269,19 +321,19 @@ const projects = [
         image: algoTrading,
         source_code_link: "https://github.com/",
     },
-    {
-        name: "Virtual Assistant CLI",
-        description:
-            "It is an application program that operates on a command line interface and understands voice commands in order to perform tasks on behalf of the user",
-        tags: [
-            {
-                name: "Python",
-                color: "blue-text-gradient",
-            },
-        ],
-        image: virtualAssistant,
-        source_code_link: "https://github.com/",
-    },
+    // {
+    //     name: "Virtual Assistant CLI",
+    //     description:
+    //         "It is an application program that operates on a command line interface and understands voice commands in order to perform tasks on behalf of the user",
+    //     tags: [
+    //         {
+    //             name: "Python",
+    //             color: "blue-text-gradient",
+    //         },
+    //     ],
+    //     image: virtualAssistant,
+    //     source_code_link: "https://github.com/",
+    // },
     
 ];
 

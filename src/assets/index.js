@@ -31,6 +31,8 @@ import productSite from "./productSite.png";
 import androidApp from "./androidApp.png";
 import virtualAssistant from "./virtualAssistant.png";
 import algoTrading from "./algoTrading.png";
+import emailNewsletter from './emailNewsletter.png';
+import fastApi from './fastApi.png';
 
 
 
@@ -61,5 +63,7 @@ export {
   productSite,
   androidApp,
   virtualAssistant,
-  algoTrading
+  algoTrading,
+  emailNewsletter,
+  fastApi
 };
