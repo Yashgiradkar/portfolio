@@ -34,11 +34,19 @@ scene.name = "System_Design_Saturn_Showcase";
 const materials = {
   planet: new THREE.MeshStandardMaterial({
     name: "dark_rust_planet",
+<<<<<<< HEAD
     color: "#3f120a",
     emissive: "#230802",
     emissiveIntensity: 0.28,
     roughness: 0.56,
     metalness: 0.12,
+=======
+    color: "#5d1409",
+    emissive: "#230802",
+    emissiveIntensity: 0.5,
+    roughness: 0.48,
+    metalness: 0.18,
+>>>>>>> 2c090f7 (initial hero page upgradation)
   }),
   continent: new THREE.MeshStandardMaterial({
     name: "planet_surface_contours",
@@ -52,7 +60,11 @@ const materials = {
     name: "amber_system_ring_glow",
     color: "#ffc46b",
     emissive: "#ff7a2a",
+<<<<<<< HEAD
     emissiveIntensity: 1.65,
+=======
+    emissiveIntensity: 2.75,
+>>>>>>> 2c090f7 (initial hero page upgradation)
     roughness: 0.2,
     metalness: 0.35,
   }),
@@ -60,7 +72,11 @@ const materials = {
     name: "gold_data_stream",
     color: "#ffe2a6",
     emissive: "#ffce5a",
+<<<<<<< HEAD
     emissiveIntensity: 1.35,
+=======
+    emissiveIntensity: 2.1,
+>>>>>>> 2c090f7 (initial hero page upgradation)
     roughness: 0.24,
     metalness: 0.32,
     transparent: true,
@@ -96,7 +112,11 @@ const materials = {
     name: "system_design_text",
     color: "#fff2d4",
     emissive: "#ffc46b",
+<<<<<<< HEAD
     emissiveIntensity: 1.15,
+=======
+    emissiveIntensity: 1.65,
+>>>>>>> 2c090f7 (initial hero page upgradation)
     roughness: 0.34,
     metalness: 0.08,
   }),
@@ -108,6 +128,7 @@ const materials = {
     roughness: 0.28,
     metalness: 0.06,
   }),
+<<<<<<< HEAD
   labelPanel: new THREE.MeshStandardMaterial({
     name: "frosted_ring_ui_label_panel",
     color: "#17242a",
@@ -125,6 +146,8 @@ const materials = {
     transparent: true,
     opacity: 0.92,
   }),
+=======
+>>>>>>> 2c090f7 (initial hero page upgradation)
 };
 
 const root = new THREE.Group();
@@ -156,9 +179,18 @@ const addCenteredText = (label, size, material) => {
   const geometry = new TextGeometry(label, {
     font,
     size,
+<<<<<<< HEAD
     height: 0.006,
     curveSegments: 1,
     bevelEnabled: false,
+=======
+    height: 0.012,
+    curveSegments: 3,
+    bevelEnabled: true,
+    bevelThickness: 0.003,
+    bevelSize: 0.002,
+    bevelSegments: 1,
+>>>>>>> 2c090f7 (initial hero page upgradation)
   });
 
   geometry.computeBoundingBox();
@@ -172,12 +204,17 @@ const addCenteredText = (label, size, material) => {
 
 const planet = addMesh(
   "central_future_technology_planet",
+<<<<<<< HEAD
   new THREE.SphereGeometry(0.92, 48, 32),
+=======
+  new THREE.SphereGeometry(0.92, 72, 48),
+>>>>>>> 2c090f7 (initial hero page upgradation)
   materials.planet,
   [0, 0, 0],
   [0.12, -0.24, 0]
 );
 
+<<<<<<< HEAD
 addMesh(
   "planet_geodesic_design_mesh",
   new THREE.IcosahedronGeometry(0.935, 3),
@@ -193,13 +230,19 @@ addMesh(
   [1, 1, 1]
 );
 
+=======
+>>>>>>> 2c090f7 (initial hero page upgradation)
 for (let i = 0; i < 11; i += 1) {
   const angle = (i / 11) * Math.PI * 2;
   const y = -0.36 + (i % 5) * 0.18;
   const radius = 0.72 + (i % 3) * 0.08;
   addMesh(
     `planet_architecture_contour_${String(i + 1).padStart(2, "0")}`,
+<<<<<<< HEAD
     new THREE.SphereGeometry(0.09 + (i % 2) * 0.035, 12, 8),
+=======
+    new THREE.SphereGeometry(0.09 + (i % 2) * 0.035, 18, 12),
+>>>>>>> 2c090f7 (initial hero page upgradation)
     materials.continent,
     [Math.cos(angle) * radius, y, Math.sin(angle) * radius],
     [0, 0, 0],
@@ -216,6 +259,7 @@ addMesh(
   [0, 1.16, -0.2]
 );
 
+<<<<<<< HEAD
 const flareGroup = new THREE.Group();
 flareGroup.name = "bright_eclipse_sunburst";
 flareGroup.position.set(0.92, -0.04, -0.34);
@@ -236,12 +280,15 @@ for (let i = 0; i < 18; i += 1) {
   );
 }
 
+=======
+>>>>>>> 2c090f7 (initial hero page upgradation)
 const ringGroup = new THREE.Group();
 ringGroup.name = "rotating_system_design_rings";
 ringGroup.rotation.set(1.12, 0.02, -0.16);
 root.add(ringGroup);
 
 const ringSpecs = [
+<<<<<<< HEAD
   ["ring_inner_data_track", 1.55, 0.006, materials.gold],
   ["ring_scalability_track", 1.9, 0.009, materials.gold],
   ["ring_reliability_track", 2.22, 0.005, materials.rustGlass],
@@ -332,19 +379,68 @@ for (let i = 0; i < 160; i += 1) {
   const angle = (i / 160) * Math.PI * 2;
   const radius = 1.48 + (i % 9) * 0.34 + Math.sin(i * 7.13) * 0.018;
   const size = 0.005 + (i % 4) * 0.0025;
+=======
+  ["ring_scalability_track", 1.28, 0.015, materials.amber],
+  ["ring_reliability_track", 1.56, 0.012, materials.gold],
+  ["ring_observability_track", 1.88, 0.01, materials.rustGlass],
+  ["ring_security_track", 2.22, 0.012, materials.amber],
+  ["ring_future_signal_track", 2.56, 0.008, materials.cyan],
+];
+
+ringSpecs.forEach(([name, radius, tube, material]) => {
+  addMesh(name, new THREE.TorusGeometry(radius, tube, 16, 192), material, [0, 0, 0], [0, 0, 0], [1, 0.42, 1], ringGroup);
+});
+
+const concepts = [
+  "SCALABILITY",
+  "RELIABILITY",
+  "AVAILABILITY",
+  "LOW LATENCY",
+  "CACHING",
+  "LOAD BALANCING",
+  "DATABASES",
+  "QUEUES",
+  "CONSISTENCY",
+  "OBSERVABILITY",
+  "SECURITY",
+  "API DESIGN",
+];
+
+concepts.forEach((concept, index) => {
+  const angle = (index / concepts.length) * Math.PI * 2;
+  const radius = index % 2 === 0 ? 1.74 : 2.18;
+  const text = addCenteredText(concept, concept.length > 11 ? 0.082 : 0.095, materials.text);
+  text.name = `ring_topic_${concept.toLowerCase().replaceAll(" ", "_")}`;
+  text.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius * 0.42, 0.07);
+  text.rotation.set(0, 0, angle + Math.PI / 2);
+  text.castShadow = false;
+  text.receiveShadow = false;
+  ringGroup.add(text);
+});
+
+for (let i = 0; i < 96; i += 1) {
+  const angle = (i / 96) * Math.PI * 2;
+  const radius = 1.2 + (i % 5) * 0.28 + Math.sin(i * 7.13) * 0.025;
+  const size = 0.012 + (i % 4) * 0.004;
+>>>>>>> 2c090f7 (initial hero page upgradation)
   const material = i % 7 === 0 ? materials.cyan : materials.gold;
 
   addMesh(
     `ring_data_particle_${String(i + 1).padStart(3, "0")}`,
     new THREE.SphereGeometry(size, 8, 6),
     material,
+<<<<<<< HEAD
     [Math.cos(angle) * radius, Math.sin(angle) * radius * 0.32, 0.02 + (i % 3) * 0.015],
+=======
+    [Math.cos(angle) * radius, Math.sin(angle) * radius * 0.42, 0.02 + (i % 3) * 0.015],
+>>>>>>> 2c090f7 (initial hero page upgradation)
     [0, 0, 0],
     [1, 1, 1],
     ringGroup
   );
 }
 
+<<<<<<< HEAD
 for (let i = 0; i < 30; i += 1) {
   const angle = (i / 30) * Math.PI * 2 + Math.sin(i * 1.91) * 0.08;
   const radius = 1.6 + (i % 10) * 0.3;
@@ -371,22 +467,59 @@ const moons = [
   ["SLO", 3.82, 0.062, materials.amber],
   ["AUTH", 4.38, 0.055, materials.rustGlass],
   ["LOGS", 2.82, 0.055, materials.cyan],
+=======
+const moons = [
+  ["API", 2.95, 0.16, materials.cyan],
+  ["DB", 3.18, 0.2, materials.rustGlass],
+  ["CACHE", 2.72, 0.13, materials.amber],
+  ["QUEUE", 3.36, 0.12, materials.gold],
+  ["LB", 2.88, 0.11, materials.cyan],
+  ["SLO", 3.08, 0.13, materials.amber],
+  ["AUTH", 3.28, 0.1, materials.rustGlass],
+  ["LOGS", 2.62, 0.115, materials.cyan],
+>>>>>>> 2c090f7 (initial hero page upgradation)
 ];
 
 moons.forEach(([label, radius, size, material], index) => {
   const angle = (index / moons.length) * Math.PI * 2 + 0.18;
   const z = index % 2 === 0 ? 0.34 : -0.28;
+<<<<<<< HEAD
   addMesh(
     `system_moon_${label.toLowerCase()}`,
     new THREE.IcosahedronGeometry(size, 1),
     material,
     [Math.cos(angle) * radius, Math.sin(angle) * radius * 0.34, z],
+=======
+  const moon = addMesh(
+    `system_moon_${label.toLowerCase()}`,
+    new THREE.IcosahedronGeometry(size, 1),
+    material,
+    [Math.cos(angle) * radius, Math.sin(angle) * radius * 0.46, z],
+>>>>>>> 2c090f7 (initial hero page upgradation)
     [0.4, 0.1, angle],
     [1, 1, 1],
     ringGroup
   );
+<<<<<<< HEAD
 });
 
+=======
+
+  const tag = addCenteredText(label, 0.075, materials.microText);
+  tag.name = `moon_label_${label.toLowerCase()}`;
+  tag.position.set(moon.position.x, moon.position.y - size - 0.1, z + 0.035);
+  tag.castShadow = false;
+  tag.receiveShadow = false;
+  ringGroup.add(tag);
+});
+
+const caption = addCenteredText("THE FLOW OF IDEAS & CODE", 0.12, materials.text);
+caption.name = "portfolio_caption_flow_of_ideas_and_code";
+caption.position.set(0, -1.58, 0.5);
+caption.rotation.set(-0.12, 0, 0);
+root.add(caption);
+
+>>>>>>> 2c090f7 (initial hero page upgradation)
 root.rotation.set(-0.08, 0.18, -0.08);
 root.scale.set(1.08, 1.08, 1.08);
 
