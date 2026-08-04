@@ -1,31 +1,85 @@
-import React, { Suspense, useEffect, useState } from "react";
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Preload, useGLTF } from "@react-three/drei";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { ContactShadows, Float, OrbitControls, Preload, useGLTF } from "@react-three/drei";
 
 import CanvasLoader from "../Loader";
 
 const Computers = ({ isMobile }) => {
-  const computer = useGLTF("./desktop_pc/scene.gltf");
+  const model = useGLTF("./developer_orb/scene.gltf");
+  const orbRef = useRef();
+  const scene = useMemo(() => model.scene.clone(), [model.scene]);
+
+  useEffect(() => {
+    scene.traverse((child) => {
+      if (!child.isMesh) {
+        return;
+      }
+
+      child.castShadow = true;
+      child.receiveShadow = true;
+
+      if (child.material) {
+        child.material.envMapIntensity = 1.8;
+
+        if (child.material.emissive) {
+          child.material.emissiveIntensity =
+            child.material.name?.includes("cyan") ? 2.35 : 2.8;
+        }
+      }
+    });
+  }, [scene]);
+
+  useFrame(({ clock }) => {
+    if (!orbRef.current) {
+      return;
+    }
+
+    const time = clock.getElapsedTime();
+    orbRef.current.rotation.y = time * 0.18;
+    orbRef.current.rotation.z = Math.sin(time * 0.55) * 0.035;
+  });
 
   return (
-    <mesh>
-      <hemisphereLight intensity={0.15} groundColor='black' />
+    <group>
+      <hemisphereLight intensity={0.42} groundColor='#1a0a04' color='#ffe2b0' />
+      <ambientLight intensity={0.28} color='#ffc46b' />
       <spotLight
-        position={[-20, 50, 10]}
-        angle={0.12}
+        position={[-8, 10, 6]}
+        angle={0.32}
         penumbra={1}
-        intensity={1}
+        intensity={2.4}
+        color='#ffc46b'
         castShadow
-        shadow-mapSize={1024}
+        shadow-mapSize={2048}
       />
-      <pointLight intensity={1} />
-      <primitive
-        object={computer.scene}
-        scale={isMobile ? 0.7 : 0.75}
-        position={isMobile ? [0, -3, -2.2] : [0, -3.25, -1.5]}
-        rotation={[-0.01, -0.2, -0.1]}
+      <pointLight position={[3.4, 0.4, 3.2]} intensity={2.4} color='#ff7a2a' />
+      <pointLight position={[-3.3, 1.4, 2.4]} intensity={1.85} color='#6be7ff' />
+      <pointLight position={[0, -1.8, 2.6]} intensity={1.1} color='#ffc46b' />
+
+      <Float
+        speed={1.35}
+        rotationIntensity={isMobile ? 0.1 : 0.2}
+        floatIntensity={isMobile ? 0.22 : 0.36}
+      >
+        <group ref={orbRef}>
+          <primitive
+            object={scene}
+            scale={isMobile ? 0.94 : 1.2}
+            position={isMobile ? [0, -0.8, -1.7] : [0, -0.42, -1.35]}
+            rotation={[0.06, -0.28, -0.02]}
+          />
+        </group>
+      </Float>
+
+      <ContactShadows
+        position={[0, isMobile ? -2.55 : -2.82, -1.25]}
+        opacity={0.34}
+        scale={isMobile ? 3.5 : 5.6}
+        blur={3}
+        far={3.4}
+        color='#ff7a2a'
       />
-    </mesh>
+    </group>
   );
 };
 
@@ -55,15 +109,18 @@ const ComputersCanvas = () => {
 
   return (
     <Canvas
-      frameloop='demand'
+      frameloop='always'
       shadows
       dpr={[1, 2]}
-      camera={{ position: [20, 3, 5], fov: 25 }}
-      gl={{ preserveDrawingBuffer: true }}
+      camera={{ position: [0, 0.8, 6], fov: 38 }}
+      gl={{ preserveDrawingBuffer: true, alpha: true, antialias: true }}
     >
       <Suspense fallback={<CanvasLoader />}>
         <OrbitControls
           enableZoom={false}
+          autoRotate
+          autoRotateSpeed={0.45}
+          enablePan={false}
           maxPolarAngle={Math.PI / 2}
           minPolarAngle={Math.PI / 2}
         />
@@ -74,5 +131,7 @@ const ComputersCanvas = () => {
     </Canvas>
   );
 };
+
+useGLTF.preload("./developer_orb/scene.gltf");
 
 export default ComputersCanvas;
