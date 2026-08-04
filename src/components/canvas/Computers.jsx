@@ -7,6 +7,8 @@ import CanvasLoader from "../Loader";
 const Computers = ({ isMobile }) => {
   const model = useGLTF("./developer_orb/scene.gltf");
   const orbRef = useRef();
+  const planetRef = useRef();
+  const ringTextRef = useRef();
   const scene = useMemo(() => model.scene.clone(), [model.scene]);
 
   useEffect(() => {
@@ -19,14 +21,17 @@ const Computers = ({ isMobile }) => {
       child.receiveShadow = true;
 
       if (child.material) {
-        child.material.envMapIntensity = 1.8;
+        child.material.envMapIntensity = 1.15;
 
         if (child.material.emissive) {
           child.material.emissiveIntensity =
-            child.material.name?.includes("cyan") ? 2.35 : 2.8;
+            child.material.name?.includes("cyan") ? 1.55 : 1.7;
         }
       }
     });
+
+    planetRef.current = scene.getObjectByName("central_future_technology_planet");
+    ringTextRef.current = scene.getObjectByName("circulating_ring_microcopy");
   }, [scene]);
 
   useFrame(({ clock }) => {
@@ -35,26 +40,34 @@ const Computers = ({ isMobile }) => {
     }
 
     const time = clock.getElapsedTime();
-    orbRef.current.rotation.y = time * 0.18;
+    orbRef.current.rotation.y = Math.sin(time * 0.22) * 0.16;
     orbRef.current.rotation.z = Math.sin(time * 0.55) * 0.035;
+
+    if (planetRef.current) {
+      planetRef.current.rotation.y = time * 0.12;
+    }
+
+    if (ringTextRef.current) {
+      ringTextRef.current.rotation.z = time * 0.26;
+    }
   });
 
   return (
     <group>
       <hemisphereLight intensity={0.42} groundColor='#1a0a04' color='#ffe2b0' />
-      <ambientLight intensity={0.28} color='#ffc46b' />
+      <ambientLight intensity={0.16} color='#ffc46b' />
       <spotLight
         position={[-8, 10, 6]}
         angle={0.32}
         penumbra={1}
-        intensity={2.4}
+        intensity={1.65}
         color='#ffc46b'
         castShadow
         shadow-mapSize={2048}
       />
-      <pointLight position={[3.4, 0.4, 3.2]} intensity={2.4} color='#ff7a2a' />
-      <pointLight position={[-3.3, 1.4, 2.4]} intensity={1.85} color='#6be7ff' />
-      <pointLight position={[0, -1.8, 2.6]} intensity={1.1} color='#ffc46b' />
+      <pointLight position={[3.4, 0.4, 3.2]} intensity={1.85} color='#ff7a2a' />
+      <pointLight position={[-3.3, 1.4, 2.4]} intensity={0.75} color='#6be7ff' />
+      <pointLight position={[0, -1.8, 2.6]} intensity={0.75} color='#ffc46b' />
 
       <Float
         speed={1.35}
@@ -64,9 +77,9 @@ const Computers = ({ isMobile }) => {
         <group ref={orbRef}>
           <primitive
             object={scene}
-            scale={isMobile ? 0.94 : 1.2}
-            position={isMobile ? [0, -0.8, -1.7] : [0, -0.42, -1.35]}
-            rotation={[0.06, -0.28, -0.02]}
+            scale={isMobile ? 0.52 : 0.82}
+            position={isMobile ? [0.28, -0.36, -1.9] : [0.72, -0.34, -1.65]}
+            rotation={[0.08, -0.42, -0.08]}
           />
         </group>
       </Float>
