@@ -47,12 +47,8 @@ const About = () => {
         variants={fadeIn("", "", 0.1, 1)}
         className='mt-4 text-secondary text-[17px] max-w-3xl leading-[30px]'
       >
-        A student of S. B. Jain Institute of Technology, Management & Research, Nagpur.
-        Continuously learning to develop problem-solving skills, logical skills,
-        ready to be a creative and life-changing experience, communication, leadership,
-        teamwork, time management, involved in self-improvement, and ready for challenges
-        to test my ability and skills with power to complete it and then improve it.
-        learning the importance of technology in our future.
+        I’m a Software Engineer passionate about building scalable applications and solving complex problems with clean, practical solutions. With a strong foundation in full-stack and backend development, I continuously adapt to emerging technologies and explore Generative AI, LLMs, RAG, AI agents, and LangChain. I learn fast, experiment fearlessly, and enjoy turning new ideas into intelligent, impactful products.
+
       </motion.p>
 
       <div className='mt-20 flex flex-wrap gap-10'>
