@@ -17,12 +17,16 @@ import nodejs from "./tech/nodejs.png";
 import reactjs from "./tech/reactjs.png";
 import tailwind from "./tech/tailwind.png";
 import threejs from "./tech/threejs.svg";
+import Langchain from "./tech/Langchain.png";
+import Docker from "./tech/Docker.png";
 
 
 
 import ieee from "./company/ieee.png";
 import s2p from "./company/s2p.png";
 import whitehorse from "./company/whitehorse.jpg";
+import smartData from "./company/smartDataEnterprises.png";
+import Kaliba from "./company/KalibaEnterprises.png";
 
 
 import dashboard from "./dashboard.png";
@@ -65,5 +69,9 @@ export {
   virtualAssistant,
   algoTrading,
   emailNewsletter,
-  fastApi
+  fastApi,
+  smartData,
+  Kaliba,
+  Docker,
+  Langchain,
 };
