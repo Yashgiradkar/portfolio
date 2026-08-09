@@ -22,7 +22,11 @@ import {
     virtualAssistant,
     threejs,
     emailNewsletter,
-    fastApi
+    fastApi,
+    Docker,
+    Langchain,
+    smartData,
+    Kaliba,
 } from "../assets";
 
 export const navLinks = [
@@ -41,12 +45,12 @@ export const navLinks = [
 ];
 
 const services = [
-    // {
-    //     title: "Backend Developer",
-    //     icon: web,
-    // },
     {
-        title: "Application Developer",
+        title: "Gen AI Developer",
+        icon: web,
+    },
+    {
+        title: "Backend Developer",
         icon: backend,
     },
     {
@@ -61,11 +65,11 @@ const services = [
 
 const technologies = [
     {
-        name: "HTML 5",
+        name: "HTML5",
         icon: html,
     },
     {
-        name: "CSS 3",
+        name: "CSS3",
         icon: css,
     },
     {
@@ -73,7 +77,7 @@ const technologies = [
         icon: javascript,
     },
     {
-        name: "React JS",
+        name: "React.js",
         icon: reactjs,
     },
     {
@@ -81,7 +85,7 @@ const technologies = [
         icon: tailwind,
     },
     {
-        name: "Node JS",
+        name: "Node.js",
         icon: nodejs,
     },
     {
@@ -89,25 +93,62 @@ const technologies = [
         icon: mongodb,
     },
     {
-        name: "Three JS",
-        icon: threejs,
+        name: "Docker",
+        icon: Docker,
     },
     {
-        name: "git",
+        name: "Git",
         icon: git,
-    }
-    
+    },
+    {
+        name: "LangChain",
+        icon: Langchain,
+    },
+    {
+        name: "Three.js",
+        icon: threejs,
+    },
 ];
 
 const experiences = [
+    {
+        title: "Software Associate Level II",
+        company_name: "SmartData Enterprises",
+        icon: smartData,
+        iconBg: "#383E56",
+        date: "September 2024 - Present",
+        points: [
+            "Architected and maintained a high-performance NestJS API Gateway, improving microservices routing efficiency by 25% while enabling secure, low-latency communication across distributed services.",
+
+            "Engineered zero-downtime MongoDB data migrations across production microservices, preserving 100% data integrity during complex backend architecture and schema upgrades.",
+
+            "Designed scalable backend services using Node.js, Express.js, and MongoDB, leveraging multi-stage aggregation pipelines to automate complex business workflows and conditional entity deletion while maintaining data consistency.",
+        ],
+    },
+    {
+        title: "Web Developer Intern",
+        company_name: "Kaliba Enterprises",
+        icon: Kaliba,
+        iconBg: "#E6DEDD",
+        date: "January 2024 - June 2024",
+        points: [
+            "Developed interactive, data-driven dashboards and visualizations using Syncfusion, transforming complex datasets into intuitive charts and actionable insights.",
+
+            "Built responsive and reusable UI components with Tailwind CSS and integrated backend APIs to dynamically fetch, process, and render application data across responsive interfaces.",
+
+            "Implemented efficient application state management and optimized frontend components to deliver smooth user interactions, consistent UI behavior, and maintainable web experiences.",
+        ],
+    },
     {
         title: "Full Stack Developer (Trainee)",
         company_name: "Whitehorse Business Solutions",
         icon: whitehorse,
         iconBg: "#383E56",
-        date: "July 2023 - Aug 2023",
+        date: "July 2023 - August 2023",
         points: [
-            "Transformed ideas into captivating web pages using HTML and CSS andJavaScript's logic for interactivity. I rely on Node.js and Express.js to drive the server, while MongoDB ensures secure and efficient data storage for each project.crafted elegant user- experience, optimizing user journeys.",
+            "Developed responsive web interfaces using HTML, CSS, and JavaScript, implementing interactive functionality and user-focused experiences.",
+            "Built server-side functionality using Node.js and Express.js, integrating MongoDB for efficient and reliable data storage.",
+            "Worked across the frontend and backend stack to transform requirements into functional web applications while focusing on usability and maintainability.",
         ],
     },
     {
@@ -115,22 +156,26 @@ const experiences = [
         company_name: "S2P Edutech",
         icon: s2p,
         iconBg: "#383E56",
-        date: "Aug 2022 - Sep 2022",
+        date: "August 2022 - September 2022",
         points: [
-            "Manually tested REST Api requests with Postman and automated tested requests with Jest Framework,Test Cases Report, Json Objects",
+            "Performed manual testing of REST APIs using Postman, validating request methods, response payloads, status codes, and API behavior.",
+            "Automated API test cases using Jest, improving testing efficiency and helping identify functional issues during development.",
+            "Prepared test cases and reports while validating JSON payloads and ensuring API responses met expected requirements.",
         ],
     },
     {
         title: "Campus Treasurer",
-        company_name: "Institute of Electrical and Electronics Engineers (IEEE)",
+        company_name:
+            "Institute of Electrical and Electronics Engineers (IEEE)",
         icon: ieee,
         iconBg: "#E6DEDD",
-        date: "Jan 2022 - Jan 2023",
+        date: "January 2022 - January 2023",
         points: [
-            "Learned to Organize workshops and seminars which is helpful for students, learned working in team, Improved Communication, Developed Networking Skills",
+            "Organized technical workshops and seminars for students, coordinating activities and supporting successful event execution.",
+            "Collaborated with team members on event planning and execution, strengthening communication, teamwork, leadership, and organizational skills.",
+            "Developed professional networking skills through coordination with students, faculty, and IEEE members.",
         ],
     },
-    
 ];
 
 const testimonials = [
@@ -211,7 +256,7 @@ const projects = [
         image: fastApi,
         source_code_link: "https://github.com/",
     },
-    
+
     {
         name: "Vercel Counting System",
         description:
@@ -334,7 +379,7 @@ const projects = [
     //     image: virtualAssistant,
     //     source_code_link: "https://github.com/",
     // },
-    
+
 ];
 
 export { services, technologies, experiences, testimonials, projects };
