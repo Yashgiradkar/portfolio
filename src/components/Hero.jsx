@@ -125,125 +125,97 @@ const polygon = (c, cx, cy, r, sides, rot = -Math.PI / 2) => {
 // Logos are drawn on a canvas so nothing external has to load (no CORS, no extra files).
 // Each moon swaps to a different badge every time it circles round behind the planet.
 const BADGES = [
-  {
-    name: "React", title: "Component-Driven UI", text: "Composable interfaces with predictable state and fast rendering.", viz: "flow", color: "#61dafb", url: "https://react.dev", draw: (c) => {
-      c.strokeStyle = "#61dafb"; c.lineWidth = 9;
-      for (let i = 0; i < 3; i += 1) {
-        c.save(); c.translate(128, 128); c.rotate((i * Math.PI) / 3);
-        c.beginPath(); c.ellipse(0, 0, 84, 32, 0, 0, Math.PI * 2); c.stroke(); c.restore();
-      }
-      c.fillStyle = "#61dafb"; c.beginPath(); c.arc(128, 128, 13, 0, Math.PI * 2); c.fill();
+  { name: "React", title: "Component-Driven UI", text: "Composable interfaces with predictable state and fast rendering.", viz: "flow", color: "#61dafb", url: "https://react.dev", draw: (c) => {
+    c.strokeStyle = "#61dafb"; c.lineWidth = 9;
+    for (let i = 0; i < 3; i += 1) {
+      c.save(); c.translate(128, 128); c.rotate((i * Math.PI) / 3);
+      c.beginPath(); c.ellipse(0, 0, 84, 32, 0, 0, Math.PI * 2); c.stroke(); c.restore();
     }
-  },
-  {
-    name: "AWS", title: "Cloud Infrastructure", text: "Managed compute, storage and networking that scales on demand.", viz: "mesh", color: "#ff9900", url: "https://aws.amazon.com", draw: (c) => {
-      c.fillStyle = "#ffffff"; c.font = BADGE_FONT; c.textAlign = "center"; c.textBaseline = "middle";
-      c.fillText("aws", 128, 98);
-      c.strokeStyle = "#ff9900"; c.lineWidth = 11; c.lineCap = "round"; c.lineJoin = "round";
-      c.beginPath(); c.moveTo(62, 156); c.quadraticCurveTo(128, 196, 194, 150); c.stroke();
-      c.beginPath(); c.moveTo(176, 146); c.lineTo(196, 149); c.lineTo(192, 169); c.stroke();
+    c.fillStyle = "#61dafb"; c.beginPath(); c.arc(128, 128, 13, 0, Math.PI * 2); c.fill();
+  } },
+  { name: "AWS", title: "Cloud Infrastructure", text: "Managed compute, storage and networking that scales on demand.", viz: "mesh", color: "#ff9900", url: "https://aws.amazon.com", draw: (c) => {
+    c.fillStyle = "#ffffff"; c.font = BADGE_FONT; c.textAlign = "center"; c.textBaseline = "middle";
+    c.fillText("aws", 128, 98);
+    c.strokeStyle = "#ff9900"; c.lineWidth = 11; c.lineCap = "round"; c.lineJoin = "round";
+    c.beginPath(); c.moveTo(62, 156); c.quadraticCurveTo(128, 196, 194, 150); c.stroke();
+    c.beginPath(); c.moveTo(176, 146); c.lineTo(196, 149); c.lineTo(192, 169); c.stroke();
+  } },
+  { name: "Node", title: "Event-Driven Backends", text: "Non-blocking I/O so one service handles thousands of requests.", viz: "flow", color: "#7ccf5a", url: "https://nodejs.org", draw: (c) => {
+    c.strokeStyle = "#7ccf5a"; c.lineWidth = 11; c.lineJoin = "round";
+    polygon(c, 128, 128, 88, 6); c.stroke();
+    c.fillStyle = "#7ccf5a"; c.font = "700 74px Poppins, Arial, sans-serif"; c.textAlign = "center"; c.textBaseline = "middle";
+    c.fillText("JS", 128, 132);
+  } },
+  { name: "Python", title: "AI and Data Pipelines", text: "Clean pipelines from raw data to models running in production.", viz: "bars", color: "#ffd43b", url: "https://python.org", draw: (c) => {
+    const g = c.createLinearGradient(40, 40, 216, 216);
+    g.addColorStop(0, "#5b9bd5"); g.addColorStop(1, "#ffd43b");
+    c.fillStyle = g; c.font = "700 112px Poppins, Arial, sans-serif"; c.textAlign = "center"; c.textBaseline = "middle";
+    c.fillText("Py", 128, 132);
+  } },
+  { name: "AI", title: "Retrieval-Augmented Generation", text: "Ground model answers in your own data with embeddings and reranking.", viz: "tree", color: "#ff8fa8", url: "https://langchain.com", draw: (c) => {
+    const layers = [[[58, 78], [58, 128], [58, 178]], [[128, 56], [128, 128], [128, 200]], [[198, 98], [198, 158]]];
+    c.strokeStyle = "rgba(255,170,190,.55)"; c.lineWidth = 3;
+    for (let l = 0; l < layers.length - 1; l += 1) {
+      layers[l].forEach((a) => layers[l + 1].forEach((b) => { c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke(); }));
     }
-  },
-  {
-    name: "Node", title: "Event-Driven Backends", text: "Non-blocking I/O so one service handles thousands of requests.", viz: "flow", color: "#7ccf5a", url: "https://nodejs.org", draw: (c) => {
-      c.strokeStyle = "#7ccf5a"; c.lineWidth = 11; c.lineJoin = "round";
-      polygon(c, 128, 128, 88, 6); c.stroke();
-      c.fillStyle = "#7ccf5a"; c.font = "700 74px Poppins, Arial, sans-serif"; c.textAlign = "center"; c.textBaseline = "middle";
-      c.fillText("JS", 128, 132);
+    c.fillStyle = "#ff8fa8";
+    layers.flat().forEach(([x, y]) => { c.beginPath(); c.arc(x, y, 16, 0, Math.PI * 2); c.fill(); });
+  } },
+  { name: "Kubernetes", title: "Container Orchestration", text: "Deploy, scale and heal services automatically across a cluster.", viz: "mesh", color: "#5b8def", url: "https://kubernetes.io", draw: (c) => {
+    c.strokeStyle = "#5b8def"; c.lineWidth = 10; c.lineCap = "round";
+    c.beginPath(); c.arc(128, 128, 78, 0, Math.PI * 2); c.stroke();
+    for (let i = 0; i < 7; i += 1) {
+      const a = -Math.PI / 2 + (i / 7) * Math.PI * 2;
+      c.beginPath(); c.moveTo(128 + Math.cos(a) * 20, 128 + Math.sin(a) * 20); c.lineTo(128 + Math.cos(a) * 96, 128 + Math.sin(a) * 96); c.stroke();
     }
-  },
-  {
-    name: "Python", title: "AI and Data Pipelines", text: "Clean pipelines from raw data to models running in production.", viz: "bars", color: "#ffd43b", url: "https://python.org", draw: (c) => {
-      const g = c.createLinearGradient(40, 40, 216, 216);
-      g.addColorStop(0, "#5b9bd5"); g.addColorStop(1, "#ffd43b");
-      c.fillStyle = g; c.font = "700 112px Poppins, Arial, sans-serif"; c.textAlign = "center"; c.textBaseline = "middle";
-      c.fillText("Py", 128, 132);
-    }
-  },
-  {
-    name: "AI", title: "Retrieval-Augmented Generation", text: "Ground model answers in your own data with embeddings and reranking.", viz: "tree", color: "#ff8fa8", url: "https://langchain.com", draw: (c) => {
-      const layers = [[[58, 78], [58, 128], [58, 178]], [[128, 56], [128, 128], [128, 200]], [[198, 98], [198, 158]]];
-      c.strokeStyle = "rgba(255,170,190,.55)"; c.lineWidth = 3;
-      for (let l = 0; l < layers.length - 1; l += 1) {
-        layers[l].forEach((a) => layers[l + 1].forEach((b) => { c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke(); }));
-      }
-      c.fillStyle = "#ff8fa8";
-      layers.flat().forEach(([x, y]) => { c.beginPath(); c.arc(x, y, 16, 0, Math.PI * 2); c.fill(); });
-    }
-  },
-  {
-    name: "Kubernetes", title: "Container Orchestration", text: "Deploy, scale and heal services automatically across a cluster.", viz: "mesh", color: "#5b8def", url: "https://kubernetes.io", draw: (c) => {
-      c.strokeStyle = "#5b8def"; c.lineWidth = 10; c.lineCap = "round";
-      c.beginPath(); c.arc(128, 128, 78, 0, Math.PI * 2); c.stroke();
-      for (let i = 0; i < 7; i += 1) {
-        const a = -Math.PI / 2 + (i / 7) * Math.PI * 2;
-        c.beginPath(); c.moveTo(128 + Math.cos(a) * 20, 128 + Math.sin(a) * 20); c.lineTo(128 + Math.cos(a) * 96, 128 + Math.sin(a) * 96); c.stroke();
-      }
-      c.fillStyle = "#5b8def"; c.beginPath(); c.arc(128, 128, 18, 0, Math.PI * 2); c.fill();
-    }
-  },
-  {
-    name: "Security", title: "Zero-Trust Security", text: "Verify every request, grant least privilege and log everything.", viz: "flow", color: "#5be3a0", url: "https://owasp.org", draw: (c) => {
-      c.strokeStyle = "#5be3a0"; c.lineWidth = 11; c.lineJoin = "round"; c.lineCap = "round";
-      c.beginPath(); c.moveTo(128, 34); c.lineTo(204, 62); c.lineTo(198, 140);
-      c.quadraticCurveTo(190, 196, 128, 224); c.quadraticCurveTo(66, 196, 58, 140); c.lineTo(52, 62); c.closePath(); c.stroke();
-      c.beginPath(); c.moveTo(92, 128); c.lineTo(120, 156); c.lineTo(168, 100); c.stroke();
-    }
-  },
-  {
-    name: "Encryption", title: "Encryption Everywhere", text: "TLS in transit, strong keys at rest, secrets kept out of code.", viz: "flow", color: "#ffd784", url: "https://developer.mozilla.org/docs/Web/Security", draw: (c) => {
-      c.strokeStyle = "#ffd784"; c.lineWidth = 15; c.lineCap = "round";
-      c.beginPath(); c.arc(128, 112, 36, Math.PI, 0); c.lineTo(164, 128); c.moveTo(92, 112); c.lineTo(92, 128); c.stroke();
-      c.fillStyle = "#ffd784"; c.beginPath(); (c.roundRect || c.rect).call(c, 70, 124, 116, 90, 16); c.fill();
-      c.fillStyle = "#0a1018"; c.beginPath(); c.arc(128, 160, 12, 0, Math.PI * 2); c.fill(); c.fillRect(124, 160, 8, 28);
-    }
-  },
-  {
-    name: "Cloud", title: "Autoscaling and Failover", text: "Capacity follows traffic, and a failed node never takes you down.", viz: "bars", color: "#75d9ff", url: "https://aws.amazon.com/what-is-cloud-computing", draw: (c) => {
-      c.fillStyle = "#75d9ff";
-      [[88, 152, 38], [130, 116, 50], [176, 150, 36]].forEach(([x, y, r]) => { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); });
-      c.fillRect(88, 150, 90, 40);
-    }
-  },
-  {
-    name: "Database", title: "Database Sharding", text: "Split data across nodes to scale writes and cut latency.", viz: "tree", color: "#dca65c", url: "https://postgresql.org", draw: (c) => {
-      c.strokeStyle = "#dca65c"; c.lineWidth = 10; c.lineCap = "round";
-      c.beginPath(); c.ellipse(128, 78, 68, 24, 0, 0, Math.PI * 2); c.stroke();
-      c.beginPath(); c.moveTo(60, 78); c.lineTo(60, 182); c.moveTo(196, 78); c.lineTo(196, 182); c.stroke();
-      [118, 150, 182].forEach((y) => { c.beginPath(); c.ellipse(128, y, 68, 24, 0, 0, Math.PI); c.stroke(); });
-    }
-  },
-  {
-    name: "Design", title: "Design Systems", text: "Shared tokens and components from Figma to production.", viz: "mesh", color: "#ffb84d", url: "https://figma.com", draw: (c) => {
-      c.globalCompositeOperation = "lighter"; c.globalAlpha = 0.8;
-      [["#ff5d7a", 102, 106], ["#ffd784", 154, 106], ["#75d9ff", 128, 150]].forEach(([col, x, y]) => {
-        c.fillStyle = col; c.beginPath(); c.arc(x, y, 52, 0, Math.PI * 2); c.fill();
-      });
-    }
-  },
-  {
-    name: "Terminal", title: "CI/CD Automation", text: "Every commit is built, tested and shipped without manual steps.", viz: "flow", color: "#ffd784", url: "https://developer.mozilla.org/docs/Learn/Tools_and_testing/Understanding_client-side_tools/Command_line", draw: (c) => {
-      c.strokeStyle = "#ffd784"; c.lineWidth = 10; c.lineCap = "round"; c.lineJoin = "round";
-      c.beginPath(); (c.roundRect || c.rect).call(c, 36, 58, 184, 140, 18); c.stroke();
-      c.beginPath(); c.moveTo(76, 104); c.lineTo(108, 128); c.lineTo(76, 152); c.moveTo(126, 158); c.lineTo(176, 158); c.stroke();
-    }
-  },
-  {
-    name: "API", title: "API Design", text: "Clear contracts, versioning and idempotent endpoints.", viz: "flow", color: "#ffb84d", url: "https://developer.mozilla.org/docs/Web/API", draw: (c) => {
-      c.fillStyle = "#ffb84d"; c.font = "700 104px Poppins, Arial, sans-serif"; c.textAlign = "center"; c.textBaseline = "middle";
-      c.fillText("{ }", 128, 130);
-    }
-  },
-  {
-    name: "LLM", title: "Agentic AI", text: "Agents that plan, call tools and act, with guardrails around them.", viz: "tree", color: "#b89cff", url: "https://anthropic.com", draw: (c) => {
-      const star = (cx, cy, s) => {
-        c.save(); c.translate(cx, cy); c.scale(s, s);
-        c.beginPath(); c.moveTo(0, -98); c.quadraticCurveTo(0, 0, 98, 0); c.quadraticCurveTo(0, 0, 0, 98); c.quadraticCurveTo(0, 0, -98, 0); c.quadraticCurveTo(0, 0, 0, -98);
-        c.fill(); c.restore();
-      };
-      c.fillStyle = "#b89cff"; star(112, 138, 1); star(194, 62, 0.3);
-    }
-  },
+    c.fillStyle = "#5b8def"; c.beginPath(); c.arc(128, 128, 18, 0, Math.PI * 2); c.fill();
+  } },
+  { name: "Security", title: "Zero-Trust Security", text: "Verify every request, grant least privilege and log everything.", viz: "flow", color: "#5be3a0", url: "https://owasp.org", draw: (c) => {
+    c.strokeStyle = "#5be3a0"; c.lineWidth = 11; c.lineJoin = "round"; c.lineCap = "round";
+    c.beginPath(); c.moveTo(128, 34); c.lineTo(204, 62); c.lineTo(198, 140);
+    c.quadraticCurveTo(190, 196, 128, 224); c.quadraticCurveTo(66, 196, 58, 140); c.lineTo(52, 62); c.closePath(); c.stroke();
+    c.beginPath(); c.moveTo(92, 128); c.lineTo(120, 156); c.lineTo(168, 100); c.stroke();
+  } },
+  { name: "Encryption", title: "Encryption Everywhere", text: "TLS in transit, strong keys at rest, secrets kept out of code.", viz: "flow", color: "#ffd784", url: "https://developer.mozilla.org/docs/Web/Security", draw: (c) => {
+    c.strokeStyle = "#ffd784"; c.lineWidth = 15; c.lineCap = "round";
+    c.beginPath(); c.arc(128, 112, 36, Math.PI, 0); c.lineTo(164, 128); c.moveTo(92, 112); c.lineTo(92, 128); c.stroke();
+    c.fillStyle = "#ffd784"; c.beginPath(); (c.roundRect || c.rect).call(c, 70, 124, 116, 90, 16); c.fill();
+    c.fillStyle = "#0a1018"; c.beginPath(); c.arc(128, 160, 12, 0, Math.PI * 2); c.fill(); c.fillRect(124, 160, 8, 28);
+  } },
+  { name: "Cloud", title: "Autoscaling and Failover", text: "Capacity follows traffic, and a failed node never takes you down.", viz: "bars", color: "#75d9ff", url: "https://aws.amazon.com/what-is-cloud-computing", draw: (c) => {
+    c.fillStyle = "#75d9ff";
+    [[88, 152, 38], [130, 116, 50], [176, 150, 36]].forEach(([x, y, r]) => { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); });
+    c.fillRect(88, 150, 90, 40);
+  } },
+  { name: "Database", title: "Database Sharding", text: "Split data across nodes to scale writes and cut latency.", viz: "tree", color: "#dca65c", url: "https://postgresql.org", draw: (c) => {
+    c.strokeStyle = "#dca65c"; c.lineWidth = 10; c.lineCap = "round";
+    c.beginPath(); c.ellipse(128, 78, 68, 24, 0, 0, Math.PI * 2); c.stroke();
+    c.beginPath(); c.moveTo(60, 78); c.lineTo(60, 182); c.moveTo(196, 78); c.lineTo(196, 182); c.stroke();
+    [118, 150, 182].forEach((y) => { c.beginPath(); c.ellipse(128, y, 68, 24, 0, 0, Math.PI); c.stroke(); });
+  } },
+  { name: "Design", title: "Design Systems", text: "Shared tokens and components from Figma to production.", viz: "mesh", color: "#ffb84d", url: "https://figma.com", draw: (c) => {
+    c.globalCompositeOperation = "lighter"; c.globalAlpha = 0.8;
+    [["#ff5d7a", 102, 106], ["#ffd784", 154, 106], ["#75d9ff", 128, 150]].forEach(([col, x, y]) => {
+      c.fillStyle = col; c.beginPath(); c.arc(x, y, 52, 0, Math.PI * 2); c.fill();
+    });
+  } },
+  { name: "Terminal", title: "CI/CD Automation", text: "Every commit is built, tested and shipped without manual steps.", viz: "flow", color: "#ffd784", url: "https://developer.mozilla.org/docs/Learn/Tools_and_testing/Understanding_client-side_tools/Command_line", draw: (c) => {
+    c.strokeStyle = "#ffd784"; c.lineWidth = 10; c.lineCap = "round"; c.lineJoin = "round";
+    c.beginPath(); (c.roundRect || c.rect).call(c, 36, 58, 184, 140, 18); c.stroke();
+    c.beginPath(); c.moveTo(76, 104); c.lineTo(108, 128); c.lineTo(76, 152); c.moveTo(126, 158); c.lineTo(176, 158); c.stroke();
+  } },
+  { name: "API", title: "API Design", text: "Clear contracts, versioning and idempotent endpoints.", viz: "flow", color: "#ffb84d", url: "https://developer.mozilla.org/docs/Web/API", draw: (c) => {
+    c.fillStyle = "#ffb84d"; c.font = "700 104px Poppins, Arial, sans-serif"; c.textAlign = "center"; c.textBaseline = "middle";
+    c.fillText("{ }", 128, 130);
+  } },
+  { name: "LLM", title: "Agentic AI", text: "Agents that plan, call tools and act, with guardrails around them.", viz: "tree", color: "#b89cff", url: "https://anthropic.com", draw: (c) => {
+    const star = (cx, cy, s) => {
+      c.save(); c.translate(cx, cy); c.scale(s, s);
+      c.beginPath(); c.moveTo(0, -98); c.quadraticCurveTo(0, 0, 98, 0); c.quadraticCurveTo(0, 0, 0, 98); c.quadraticCurveTo(0, 0, -98, 0); c.quadraticCurveTo(0, 0, 0, -98);
+      c.fill(); c.restore();
+    };
+    c.fillStyle = "#b89cff"; star(112, 138, 1); star(194, 62, 0.3);
+  } },
 ];
 
 const TECH_NODES = [
