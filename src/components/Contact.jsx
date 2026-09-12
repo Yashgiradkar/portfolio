@@ -1,17 +1,12 @@
 import React, { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import emailjs from "@emailjs/browser";
 
 import { styles } from "../styles";
 import { EarthCanvas } from "./canvas";
 import { SectionWrapper } from "../hoc";
 import { slideIn } from "../utils/motion";
 
-//0heS2zPPnG_NTWWPF
-
-//template_yy101bt
-
-//service_pnuih8p
+const WEB3FORMS_KEY = import.meta.env.WEB3FORMS_ACCESS_KEY;
 
 const Contact = () => {
   const formRef = useRef();
@@ -22,52 +17,54 @@ const Contact = () => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState(null); // { type: 'success' | 'error', message: string }
 
   const handleChange = (e) => {
-    const { target } = e;
-    const { name, value } = target;
-
-    setForm({
-      ...form,
-      [name]: value,
-    });
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setStatus(null);
 
-    emailjs
-      .send(
-        'service_pnuih8p',
-        'template_yy101bt',
-        {
-          from_name: form.name,
-          to_name: "Yash Giradkar",
-          from_email: form.email,
-          to_email: "yashgiradkar02@gmail.com",
+    try {
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          access_key: WEB3FORMS_KEY,
+          name: form.name,
+          email: form.email,
           message: form.message,
-        },
-        '0heS2zPPnG_NTWWPF'
-      )
-      .then(
-        () => {
-          setLoading(false);
-          alert("Thank you. I will get back to you as soon as possible.");
+          subject: `New message from ${form.name} — Portfolio Contact`,
+        }),
+      });
 
-          setForm({
-            name: "",
-            email: "",
-            message: "",
-          });
-        },
-        (error) => {
-          setLoading(false);
-          console.error(error);
+      const result = await response.json();
 
-          alert("Ahh, something went wrong. Please try again.");
-        }
-      );
+      if (result.success) {
+        setStatus({
+          type: "success",
+          message: "Thank you! I'll get back to you as soon as possible. 🚀",
+        });
+        setForm({ name: "", email: "", message: "" });
+      } else {
+        throw new Error(result.message || "Submission failed");
+      }
+    } catch (error) {
+      console.error("Contact form error:", error);
+      setStatus({
+        type: "error",
+        message: "Something went wrong. Please try again or email me directly.",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -94,6 +91,7 @@ const Contact = () => {
               value={form.name}
               onChange={handleChange}
               placeholder="What's your good name?"
+              required
               className='bg-tertiary py-4 px-6 placeholder:text-secondary text-white rounded-lg outline-none border-none font-medium'
             />
           </label>
@@ -105,6 +103,7 @@ const Contact = () => {
               value={form.email}
               onChange={handleChange}
               placeholder="What's your web address?"
+              required
               className='bg-tertiary py-4 px-6 placeholder:text-secondary text-white rounded-lg outline-none border-none font-medium'
             />
           </label>
@@ -116,13 +115,29 @@ const Contact = () => {
               value={form.message}
               onChange={handleChange}
               placeholder='What you want to say?'
+              required
               className='bg-tertiary py-4 px-6 placeholder:text-secondary text-white rounded-lg outline-none border-none font-medium'
             />
           </label>
 
+          {/* Inline status message */}
+          {status && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`py-3 px-5 rounded-lg text-sm font-medium ${status.type === "success"
+                  ? "bg-green-900/40 border border-green-500/40 text-green-300"
+                  : "bg-red-900/40 border border-red-500/40 text-red-300"
+                }`}
+            >
+              {status.message}
+            </motion.div>
+          )}
+
           <button
             type='submit'
-            className='bg-tertiary py-3 px-8 rounded-xl outline-none w-fit text-white font-bold shadow-md shadow-primary'
+            disabled={loading}
+            className='bg-tertiary py-3 px-8 rounded-xl outline-none w-fit text-white font-bold shadow-md shadow-primary disabled:opacity-60 disabled:cursor-not-allowed transition-opacity'
           >
             {loading ? "Sending..." : "Send"}
           </button>
