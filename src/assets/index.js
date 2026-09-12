@@ -37,6 +37,9 @@ import virtualAssistant from "./virtualAssistant.png";
 import algoTrading from "./algoTrading.png";
 import emailNewsletter from './emailNewsletter.png';
 import fastApi from './fastApi.png';
+import Ideayaan from './Ideayaan.png';
+import AiWritingWorkspace from './AiWritingWorkspace.png';
+import RagChatbot from './RagChatbot.png';
 
 
 
@@ -74,4 +77,7 @@ export {
   Kaliba,
   Docker,
   Langchain,
+  Ideayaan,
+  AiWritingWorkspace,
+  RagChatbot,
 };

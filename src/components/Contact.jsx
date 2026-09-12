@@ -6,7 +6,8 @@ import { EarthCanvas } from "./canvas";
 import { SectionWrapper } from "../hoc";
 import { slideIn } from "../utils/motion";
 
-const WEB3FORMS_KEY = import.meta.env.WEB3FORMS_ACCESS_KEY;
+const WEB3FORMS_KEY =
+  import.meta.env.WEB3FORMS_ACCESS_KEY;
 
 const Contact = () => {
   const formRef = useRef();
@@ -30,19 +31,17 @@ const Contact = () => {
     setStatus(null);
 
     try {
+      const formData = new FormData();
+      formData.append("access_key", WEB3FORMS_KEY);
+      formData.append("name", form.name);
+      formData.append("email", form.email);
+      formData.append("message", form.message);
+      formData.append("subject", `Portfolio Contact: Message from ${form.name}`);
+      formData.append("from_name", form.name);
+
       const response = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          access_key: WEB3FORMS_KEY,
-          name: form.name,
-          email: form.email,
-          message: form.message,
-          subject: `New message from ${form.name} — Portfolio Contact`,
-        }),
+        body: formData,
       });
 
       const result = await response.json();
@@ -50,17 +49,19 @@ const Contact = () => {
       if (result.success) {
         setStatus({
           type: "success",
-          message: "Thank you! I'll get back to you as soon as possible. 🚀",
+          message: "Thank you! Your message has been sent successfully. 🚀",
         });
         setForm({ name: "", email: "", message: "" });
       } else {
-        throw new Error(result.message || "Submission failed");
+        throw new Error(result.message || "Failed to send message");
       }
     } catch (error) {
-      console.error("Contact form error:", error);
+      console.error("Contact form submission error:", error);
       setStatus({
         type: "error",
-        message: "Something went wrong. Please try again or email me directly.",
+        message:
+          error.message ||
+          "Something went wrong. Please try again or email yashgiradkar02@gmail.com directly.",
       });
     } finally {
       setLoading(false);
@@ -114,13 +115,13 @@ const Contact = () => {
               name='message'
               value={form.message}
               onChange={handleChange}
-              placeholder='What you want to say?'
+              placeholder='Tell me about the role, technical challenge, or idea you have in mind...'
               required
               className='bg-tertiary py-4 px-6 placeholder:text-secondary text-white rounded-lg outline-none border-none font-medium'
             />
           </label>
 
-          {/* Inline status message */}
+          {/* Animated Status Message */}
           {status && (
             <motion.div
               initial={{ opacity: 0, y: -8 }}
