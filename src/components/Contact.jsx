@@ -126,8 +126,8 @@ const Contact = () => {
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               className={`py-3 px-5 rounded-lg text-sm font-medium ${status.type === "success"
-                  ? "bg-green-900/40 border border-green-500/40 text-green-300"
-                  : "bg-red-900/40 border border-red-500/40 text-red-300"
+                ? "bg-green-900/40 border border-green-500/40 text-green-300"
+                : "bg-red-900/40 border border-red-500/40 text-red-300"
                 }`}
             >
               {status.message}
