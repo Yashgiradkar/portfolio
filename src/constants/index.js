@@ -27,6 +27,8 @@ import {
     Langchain,
     smartData,
     Kaliba,
+    AiWritingWorkspace,
+    RagChatbot,
 } from "../assets";
 
 export const navLinks = [
@@ -46,20 +48,51 @@ export const navLinks = [
 
 const services = [
     {
-        title: "Gen AI Developer",
+        title: "AI Agents",
+        description: "AI that can understand, decide & act.",
+        icon: creator,
+    },
+    {
+        title: "RAG Systems",
+        description: "Turn your knowledge into intelligent answers.",
         icon: web,
     },
     {
-        title: "Backend Developer",
-        icon: backend,
-    },
-    {
-        title: "Full Stack Developer",
+        title: "LLM Applications",
+        description: "Build smarter products with GenAI.",
         icon: mobile,
     },
     {
-        title: "DevOps Developer",
+        title: "Backend Systems",
+        description: "Scalable APIs and microservices built for production.",
+        icon: backend,
+    },
+];
+
+const capabilities = [
+    {
+        number: "01",
+        title: "Problem Discovery",
+        description: "Find the real problem behind the requirement.",
+        icon: web,
+    },
+    {
+        number: "02",
+        title: "Product Thinking",
+        description: "Turn ambiguous problems into practical solutions.",
         icon: creator,
+    },
+    {
+        number: "03",
+        title: "Technical Thinking",
+        description: "Translate ideas into scalable, production-ready systems.",
+        icon: backend,
+    },
+    {
+        number: "04",
+        title: "Communication",
+        description: "Explain complex technical ideas clearly to technical and non-technical stakeholders.",
+        icon: mobile,
     },
 ];
 
@@ -118,11 +151,11 @@ const experiences = [
         iconBg: "#383E56",
         date: "September 2024 - Present",
         points: [
-            "Architected and maintained a high-performance NestJS API Gateway, improving microservices routing efficiency by 25% while enabling secure, low-latency communication across distributed services.",
+            "Optimized backend APIs and document-processing workflows through application logic and query optimizations, reducing API response latency by 83%.",
 
-            "Engineered zero-downtime MongoDB data migrations across production microservices, preserving 100% data integrity during complex backend architecture and schema upgrades.",
+            "Repaired 70K+ corrupted records during a production data-integrity incident using MongoDB aggregation pipelines, implemented validation checks and migration safeguards to restore data consistency.",
 
-            "Designed scalable backend services using Node.js, Express.js, and MongoDB, leveraging multi-stage aggregation pipelines to automate complex business workflows and conditional entity deletion while maintaining data consistency.",
+            "Built and maintained a production-grade TypeScript API Gateway for insurance microservices, using Consul service discovery to implement dynamic request routing and resolving production incidents and service-integration issues across critical API workflows.",
         ],
     },
     {
@@ -207,6 +240,60 @@ const testimonials = [
 
 const projects = [
     {
+        name: "AI Writing Workspace",
+        description:
+            "A browser-based, AI-powered writing studio where writers can draft content, highlight sections for targeted AI operations (Summarize, Expand, Shorten, Fix Grammar), preview transformations, chat with an AI writing assistant, and manage multiple drafts. This project integrates real-time Server-Sent Events (SSE) token streaming, robust client-side cancellation, local database persistence, and an analytics dashboard.",
+        tags: [
+            {
+                name: "React",
+                color: "blue-text-gradient",
+            },
+            {
+                name: "SSE Streaming",
+                color: "green-text-gradient",
+            },
+            {
+                name: "AI Assistant",
+                color: "pink-text-gradient",
+            },
+            {
+                name: "TailwindCSS",
+                color: "blue-text-gradient",
+            },
+        ],
+        image: AiWritingWorkspace,
+        source_code_link: "https://github.com/Yashgiradkar/ai-summarizer",
+    },
+    {
+        name: "RAG Document Chatbot",
+        description:
+            "Designed and built a production-style RAG pipeline end-to-end: session-scoped FAISS indexes, MMR-based retrieval, and Google embedding models. Improved retrieval latency by 30% and retrieval accuracy by 25% through embedding and retrieval-strategy tuning. Containerized with Docker and shipped via GitHub Actions CI/CD to AWS ECS Fargate.",
+        tags: [
+            {
+                name: "Python",
+                color: "blue-text-gradient",
+            },
+            {
+                name: "LangChain",
+                color: "green-text-gradient",
+            },
+            {
+                name: "FAISS",
+                color: "pink-text-gradient",
+            },
+            {
+                name: "Google Gemini",
+                color: "blue-text-gradient",
+            },
+            {
+                name: "AWS Fargate",
+                color: "green-text-gradient",
+            },
+        ],
+        image: RagChatbot,
+        source_code_link: "https://github.com/Yashgiradkar/RAG_MultiDoc_Chat",
+    },
+    {
         name: "Byte Email Newsletter Platform",
         description:
             "Developed a web application using Next.js and TypeScript, integrating Clerk for authentication. The zeroBounce API ensures email verification accuracy. Additionally, I implemented AstraDB for data storage and offered users the ability to customize their profiles. The application features three distinct pricing plans, managed through Stripe webhook integration. AWS SES enables users to receive transactional emails seamlessly.",
@@ -233,7 +320,7 @@ const projects = [
             },
         ],
         image: emailNewsletter,
-        source_code_link: "https://github.com/",
+        source_code_link: "https://github.com/Yashgiradkar/email-newsletter",
     },
     {
         name: "Country List Api",
