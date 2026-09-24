@@ -8,6 +8,7 @@ import Works from './Works';
 import Feedbacks from './Feedbacks';
 import CallToAction from './CallToAction';
 import Contact from './Contact';
+import AivonFlagship from './AivonFlagship';
 
 export {
   Hero,
@@ -19,6 +20,7 @@ export {
   Feedbacks,
   CallToAction,
   Contact,
+  AivonFlagship,
   EarthCanvas, 
   BallCanvas, 
   ComputersCanvas, 
