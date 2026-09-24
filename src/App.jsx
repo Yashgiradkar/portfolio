@@ -24,6 +24,7 @@ function App() {
         <About />
         <Works />
         <Experience />
+        <Tech />
         <Feedbacks />
         <CallToAction />
         <div className="relative z-0">

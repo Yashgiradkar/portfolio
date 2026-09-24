@@ -8,7 +8,7 @@ import menu from "./menu.svg";
 import close from "./close.svg";
 
 import css from "./tech/css.png";
-import android from "./tech/android.png";
+import android from "./tech/android.webp";
 import git from "./tech/git.png";
 import html from "./tech/html.png";
 import javascript from "./tech/javascript.png";
@@ -29,17 +29,17 @@ import smartData from "./company/smartDataEnterprises.png";
 import Kaliba from "./company/KalibaEnterprises.png";
 
 
-import dashboard from "./dashboard.png";
-import devOps from "./devOps.png"
-import productSite from "./productSite.png";
-import androidApp from "./androidApp.png";
-import virtualAssistant from "./virtualAssistant.png";
-import algoTrading from "./algoTrading.png";
-import emailNewsletter from './emailNewsletter.png';
+import dashboard from "./dashboard.webp";
+import devOps from "./devOps.webp"
+import productSite from "./productSite.webp";
+import androidApp from "./androidApp.webp";
+import virtualAssistant from "./virtualAssistant.webp";
+import algoTrading from "./algoTrading.webp";
+import emailNewsletter from './emailNewsletter.webp';
 import fastApi from './fastApi.png';
-import Ideayaan from './Ideayaan.png';
-import AiWritingWorkspace from './AiWritingWorkspace.png';
-import RagChatbot from './RagChatbot.png';
+import Ideayaan from './Ideayaan.webp';
+import AiWritingWorkspace from './AiWritingWorkspace.webp';
+import RagChatbot from './RagChatbot.webp';
 
 
 

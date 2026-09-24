@@ -29,21 +29,31 @@ const ProjectCard = ({
         <div className='relative w-full h-[230px]'>
           <img
             src={image}
-            alt='project_image'
+            alt={`Screenshot and preview of ${name}`}
+            loading='lazy'
+            decoding='async'
+            width='360'
+            height='230'
             className='w-full h-full object-cover rounded-2xl'
           />
 
           <div className='absolute inset-0 flex justify-end m-3 card-img_hover'>
-            <div
-              onClick={() => window.open(source_code_link, "_blank")}
-              className='black-gradient w-10 h-10 rounded-full flex justify-center items-center cursor-pointer'
+            <button
+              type='button'
+              onClick={() => window.open(source_code_link, "_blank", "noopener,noreferrer")}
+              aria-label={`View ${name} source code on GitHub`}
+              className='black-gradient w-10 h-10 rounded-full flex justify-center items-center cursor-pointer border-none outline-none'
             >
               <img
                 src={github}
-                alt='source code'
+                alt='GitHub repository'
+                width='20'
+                height='20'
+                loading='lazy'
+                decoding='async'
                 className='w-1/2 h-1/2 object-contain'
               />
-            </div>
+            </button>
           </div>
         </div>
 
