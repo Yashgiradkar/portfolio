@@ -137,8 +137,21 @@ const Works = () => {
         </motion.div>
       </div>
 
+      {/* ── Project Transition ── */}
+      <div className='mt-16 mb-10 flex items-center gap-5'>
+        {/* Left line — thicker, fades right to purple */}
+        <div className='flex-1 h-[2px] rounded-full bg-gradient-to-r from-transparent via-[#915EFF]/40 to-[#915EFF]/70' />
+
+        <p className='flex-shrink-0 text-[13.5px] sm:text-[14.5px] font-medium italic text-white/60 tracking-wide text-center'>
+          Let's start where the engineering gets interesting.
+        </p>
+
+        {/* Right line — fades left to purple */}
+        <div className='flex-1 h-[2px] rounded-full bg-gradient-to-l from-transparent via-[#915EFF]/40 to-[#915EFF]/70' />
+      </div>
+
       {/* ── Flagship Project ── */}
-      <div className='mt-16 w-full'>
+      <div className='mt-4 w-full'>
         <AivonFlagship />
       </div>
 
