@@ -65,9 +65,9 @@ const AivonFlagship = () => {
       <div className='space-y-5'>
         {/* Badges */}
         <div className='inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-[#915EFF]/20 to-[#7945eb]/10 border border-[#915EFF]/50'>
-          <span className='w-1.5 h-1.5 rounded-full bg-[#915EFF] animate-ping' />
+          <span className='w-3.5 h-3.5 rounded-full bg-[#915EFF]' />
           <span className='text-[#dfd9ff] font-mono text-[11px] font-bold uppercase tracking-[0.15em]'>
-            AI Customer Support Platform
+            The AI Customer Support Platform
           </span>
         </div>
 
