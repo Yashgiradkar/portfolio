@@ -47,8 +47,7 @@ const Navbar = () => {
         >
           <img src={logo} alt='Yash Logo' width='36' height='36' className='w-9 h-9 object-contain' />
           <p className='text-white text-[18px] font-bold cursor-pointer flex '>
-            Yash &nbsp;
-            <span className='sm:block hidden'> | Developer</span>
+            <span className='sm:block hidden'>Engineering What’s Next</span>
           </p>
         </Link>
 
