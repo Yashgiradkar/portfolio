@@ -7,6 +7,7 @@ import { github } from "../assets";
 import { SectionWrapper } from "../hoc";
 import { projects } from "../constants";
 import { fadeIn, textVariant } from "../utils/motion";
+import AivonFlagship from "./AivonFlagship";
 
 const ProjectCard = ({
   index,
@@ -136,10 +137,37 @@ const Works = () => {
         </motion.div>
       </div>
 
-      <div className='mt-20 flex flex-wrap gap-7'>
-        {projects.map((project, index) => (
-          <ProjectCard key={`project-${index}`} index={index} {...project} />
-        ))}
+      {/* ── Flagship Project ── */}
+      <div className='mt-16 w-full'>
+        <AivonFlagship />
+      </div>
+
+      {/* ── Other Projects Bridge ── */}
+      <div className='mt-20 space-y-6'>
+        {/* Section divider header */}
+        <div className='flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-5 border-b border-white/[0.08]'>
+          <div className='space-y-1.5'>
+            <p className='text-xs font-mono font-bold text-[#915EFF] uppercase tracking-widest'>
+              The Rest of the Work
+            </p>
+            <h3 className='text-white font-bold text-xl sm:text-2xl leading-tight'>
+              More projects.{" "}
+              <span className='text-secondary font-normal text-lg'>Across different stacks, domains, and problem spaces.</span>
+            </h3>
+          </div>
+        </div>
+
+        {/* Project cards grid */}
+        <motion.div
+          initial='hidden'
+          whileInView='show'
+          viewport={{ once: true, amount: 0.1 }}
+          className='flex flex-wrap gap-7'
+        >
+          {projects.map((project, index) => (
+            <ProjectCard key={`project-${index}`} index={index} {...project} />
+          ))}
+        </motion.div>
       </div>
     </>
   );
