@@ -41,6 +41,7 @@ const productionRealities = [
 const ExperienceCard = ({ experience }) => {
   return (
     <VerticalTimelineElement
+      visible={true}
       contentStyle={{
         background: "#1d1836",
         color: "#fff",
@@ -188,7 +189,7 @@ const Experience = () => {
 
       {/* Timeline Section */}
       <div className='mt-16 flex flex-col'>
-        <VerticalTimeline>
+        <VerticalTimeline animate={false}>
           {experiences.map((experience, index) => (
             <ExperienceCard
               key={`experience-${index}`}

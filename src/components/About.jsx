@@ -24,7 +24,11 @@ const ServiceCard = ({ index, title, description, icon }) => (
       >
         <img
           src={icon}
-          alt={title}
+          alt={`${title} icon`}
+          width='64'
+          height='64'
+          loading='lazy'
+          decoding='async'
           className='w-16 h-16 object-contain'
         />
 
@@ -100,7 +104,11 @@ const About = () => {
           >
             <img
               src={Ideayaan}
-              alt='HawkersCart 1st Prize — Ideayaan'
+              alt='HawkersCart 1st Prize — Ideayaan Award'
+              loading='lazy'
+              decoding='async'
+              width='420'
+              height='300'
               className='w-full h-[240px] sm:h-[300px] object-cover transition-transform duration-500 group-hover:scale-105'
             />
             <div className='absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2 text-white font-medium text-sm backdrop-blur-[2px]'>
