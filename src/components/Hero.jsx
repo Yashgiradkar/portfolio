@@ -1,27 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
 import * as THREE from "three";
 
 import { styles } from "../styles";
 
-/* -------------------------------------------------------------------------- */
-/*  Headlines (unchanged from your current Hero)                              */
-/* -------------------------------------------------------------------------- */
-const headlines = [
-  { lead: "Because if you have an AI idea, I turn it into a", prefix: "Reliable & Scalable", highlight: "Production-Ready System." },
-  { lead: "Because you need real results and ask yourself,", prefix: "How do I get AI That Actually Works in", highlight: "Production?" },
-  { lead: "Because you know that,", prefix: "Your AI Idea Deserves More Than a", highlight: "Prototype." },
-  { lead: "Because you're exploring the question,", prefix: "What If Your Software Could", highlight: "Think, Search & Act?" },
-  { lead: "Because you need a specialist where,", prefix: "Robust Backend Engineering Meets", highlight: "Agentic AI." },
-];
-
-/* -------------------------------------------------------------------------- */
-/*  Cosmic dust                                                               */
-/* -------------------------------------------------------------------------- */
 const DUST_COUNT = 940;
 const FIELD_DEPTH = 3.7;
+const DUST_DRIFT_SPEED = 0.4;
+const DUST_TARGET_ALPHA = 0.68;
 const DUST_DRIFT_SPEED = 0.4;
 const DUST_TARGET_ALPHA = 0.68;
 
@@ -41,10 +29,19 @@ const dustVertexShader = `
     pos.y += .46 * sin(1.45 * pos.x + flow) + .18 * sin(3.2 * pos.z - flow * .7);
     pos.z += .35 * sin(.8 * pos.x + flow * .9) + flow * .42;
     return abs(pos);
+    float flow = t * .075;
+    pos *= 2.;
+    pos.x += flow;
+    pos.y += .46 * sin(1.45 * pos.x + flow) + .18 * sin(3.2 * pos.z - flow * .7);
+    pos.z += .35 * sin(.8 * pos.x + flow * .9) + flow * .42;
+    return abs(pos);
   }
   void main() {
     vec3 v = uDepth * (2. * fract(warp3d(position, iTime) + iShift) - 1.) + iAnimation;
     vec4 vpos = modelViewMatrix * vec4(v, 1.); transparency = step(length(v), uDepth);
+    warmness = step(.75, fract(size * 7.13));
+    float twinkle = .78 + .22 * sin(iTime * 1.4 + size * 3.1);
+    gl_PointSize = size * twinkle * iResolution.y / 1000. / -vpos.z;
     warmness = step(.75, fract(size * 7.13));
     float twinkle = .78 + .22 * sin(iTime * 1.4 + size * 3.1);
     gl_PointSize = size * twinkle * iResolution.y / 1000. / -vpos.z;
@@ -71,7 +68,7 @@ const CosmicDust = () => {
     };
     for (let i = 0; i < DUST_COUNT; i += 1) {
       positions.push(2 * random() - 1, 2 * random() - 1, 2 * random() - 1);
-      sizes.push(50 + 50 * random()); // doubled: camera is farther away now
+      sizes.push(50 + 50 * random());
     }
     const result = new THREE.BufferGeometry();
     result.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
@@ -90,6 +87,12 @@ const CosmicDust = () => {
   }, [size, uniforms]);
 
   useFrame(({ clock }) => {
+    const elapsed = clock.getElapsedTime();
+    const fade = THREE.MathUtils.clamp((elapsed - 0.25) / 2.2, 0, 1);
+    const easedFade = fade * fade * fade * (fade * (fade * 6 - 15) + 10);
+    uniforms.iTime.value = elapsed;
+    uniforms.iAlpha.value = easedFade * DUST_TARGET_ALPHA;
+    shift.addScaledVector(camera.position, 0.0022 * DUST_DRIFT_SPEED);
     const elapsed = clock.getElapsedTime();
     const fade = THREE.MathUtils.clamp((elapsed - 0.25) / 2.2, 0, 1);
     const easedFade = fade * fade * fade * (fade * (fade * 6 - 15) + 10);
@@ -219,167 +222,40 @@ const BADGES = [
 ];
 
 const TECH_NODES = [
-  { name: "Signal", layer: 2, angle: 0.2, size: 0.21, badge: 0 },
-  { name: "Cloud", layer: 1, angle: 0.63, size: 0.24, badge: 1 },
-  { name: "Kernel", layer: 0, angle: 0.98, size: 0.22, badge: 4 },
-  { name: "Pulse", layer: 2, angle: 3.48, size: 0.2, badge: 6 },
+  { name: "Signal", color: "#75d9ff", url: "https://react.dev", layer: 2, angle: 0.2, size: 0.14 },
+  { name: "Cloud", color: "#dca65c", url: "https://nodejs.org", layer: 1, angle: 0.63, size: 0.17 },
+  { name: "Kernel", color: "#d17887", url: "https://threejs.org", layer: 0, angle: 0.98, size: 0.15 },
+  { name: "Pulse", color: "#4d9ec1", url: "https://developer.mozilla.org/docs/Web/JavaScript", layer: 2, angle: 3.48, size: 0.13 },
 ];
 
-const useBadgeTextures = () => {
-  const [fontReady, setFontReady] = useState(false);
-
-  useEffect(() => {
-    let alive = true;
-    const done = () => alive && setFontReady(true);
-    if (document.fonts?.load) document.fonts.load("700 20px Poppins").then(done, done);
-    else done();
-    return () => { alive = false; };
-  }, []);
-
-  const textures = useMemo(() => BADGES.map((badge) => {
-    const canvas = document.createElement("canvas");
-    canvas.width = BADGE_SIZE;
-    canvas.height = BADGE_SIZE;
-    const c = canvas.getContext("2d");
-    c.shadowColor = badge.color;
-    c.shadowBlur = 14;
-    badge.draw(c);
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.anisotropy = 4;
-    return texture;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [fontReady]);
-
-  useEffect(() => () => textures.forEach((t) => t.dispose()), [textures]);
-  return textures;
-};
-
-/* ---------------------------- info cards ---------------------------------- */
-const INFO_FIRST_DELAY = 4000; // first card appears after 4s
-const INFO_DURATION = 6000;    // each card stays for 6s, then closes by itself
-const INFO_GAP = 5000;         // pause before the next moon opens its card
-
-const MiniDiagram = ({ kind, color }) => {
-  const line = { stroke: color, strokeWidth: 1.4, fill: "none", strokeOpacity: 0.9 };
-  let body = null;
-
-  if (kind === "flow") {
-    body = (
-      <>
-        {[8, 84, 160].map((x) => <rect key={x} x={x} y={19} width={52} height={26} rx={6} {...line} fill={`${color}22`} />)}
-        <path d="M60 32 H84 M136 32 H160" {...line} />
-        <circle r="3" fill={color}><animateMotion dur="2.2s" repeatCount="indefinite" path="M60 32 H84" /></circle>
-        <circle r="3" fill={color}><animateMotion dur="2.2s" begin="1.1s" repeatCount="indefinite" path="M136 32 H160" /></circle>
-      </>
-    );
-  } else if (kind === "mesh") {
-    const pts = [[20, 14], [20, 50], [62, 32], [104, 12], [104, 52], [146, 32], [188, 16], [188, 48]];
-    const links = [[0, 2], [1, 2], [2, 3], [2, 4], [3, 5], [4, 5], [5, 6], [5, 7]];
-    body = (
-      <>
-        {links.map(([a, b]) => <line key={`${a}-${b}`} x1={pts[a][0]} y1={pts[a][1]} x2={pts[b][0]} y2={pts[b][1]} {...line} strokeOpacity={0.55} />)}
-        {pts.map(([x, y], i) => (
-          <circle key={i} cx={x} cy={y} r={5} fill={color}>
-            <animate attributeName="opacity" values="1;.35;1" dur={`${2 + (i % 3) * 0.6}s`} repeatCount="indefinite" />
-          </circle>
-        ))}
-      </>
-    );
-  } else if (kind === "bars") {
-    body = [18, 30, 24, 44, 36, 52, 40].map((h, i) => (
-      <rect key={i} x={14 + i * 28} y={60 - h} width={16} height={h} rx={3} fill={`${color}55`} stroke={color} strokeWidth={1.2} />
-    ));
-  } else {
-    const leaves = [10, 26, 42, 58];
-    body = (
-      <>
-        {leaves.map((y) => <path key={y} d={`M26 34 C 90 34, 110 ${y}, 172 ${y}`} {...line} strokeOpacity={0.7} />)}
-        <circle cx={26} cy={34} r={8} fill={`${color}33`} stroke={color} strokeWidth={1.4} />
-        {leaves.map((y) => <circle key={`l${y}`} cx={180} cy={y} r={5} fill={color} />)}
-      </>
-    );
-  }
-
-  return <svg viewBox="0 0 220 64" width="100%" height="56" style={{ display: "block" }}>{body}</svg>;
-};
-
-// Card + elbow leader line. The wrapper is 0x0 and sits exactly on the moon,
-// so everything below is positioned relative to the moon's centre.
-const InfoCard = ({ badge, side, shown, width }) => {
-  const edge = 64;
-  const attach = -86;
-  return (
-    <div style={{ position: "relative", width: 0, height: 0, fontFamily: "Poppins, Arial, sans-serif" }}>
-      <svg width="1" height="1" style={{ position: "absolute", left: 0, top: 0, overflow: "visible" }}>
-        <path
-          d={`M0 -34 V ${attach} H ${side * edge}`}
-          fill="none" stroke={badge.color} strokeWidth="1.2" strokeOpacity="0.85"
-          pathLength="1" strokeDasharray="1" strokeDashoffset={shown ? 0 : 1}
-          style={{ transition: "stroke-dashoffset 600ms ease-out" }}
-        />
-        <circle cx="0" cy="-34" r="2.5" fill={badge.color} style={{ opacity: shown ? 1 : 0, transition: "opacity 300ms" }} />
-      </svg>
-      <div
-        style={{
-          position: "absolute", bottom: edge, [side > 0 ? "left" : "right"]: edge, width,
-          borderRadius: 10, overflow: "hidden", whiteSpace: "normal",
-          border: `1px solid ${badge.color}88`,
-          background: "rgba(6,14,24,.78)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)",
-          boxShadow: `0 0 26px ${badge.color}33, inset 0 0 18px ${badge.color}14`,
-          opacity: shown ? 1 : 0,
-          transform: shown ? "translateY(0) scale(1)" : "translateY(8px) scale(.96)",
-          transformOrigin: side > 0 ? "bottom left" : "bottom right",
-          transition: "opacity 400ms ease, transform 400ms ease",
-        }}
-      >
-        <div style={{ padding: "8px 12px", fontSize: 12.5, fontWeight: 600, color: "#eaf6fb", borderBottom: `1px solid ${badge.color}44`, background: `linear-gradient(90deg, ${badge.color}33, transparent)` }}>
-          {badge.title}
-        </div>
-        <div style={{ padding: "10px 12px 12px" }}>
-          <MiniDiagram kind={badge.viz} color={badge.color} />
-          <p style={{ margin: "8px 0 0", fontSize: 11.5, lineHeight: 1.45, color: "#b9cbd6" }}>{badge.text}</p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// A glass orb with the logo floating inside it, like the reference.
-const TechNode = ({ node, badge, texture, info }) => {
-  const { size } = useThree();
-  const cardWidth = size.width < 720 ? 192 : 236;
+const TechNode = ({ node }) => {
   const openLink = (event) => {
     event.stopPropagation();
     window.open(badge.url, "_blank", "noopener,noreferrer");
   };
   return (
     <group
+      /* Shift the entire group slightly to the right/down if needed to match the composition */
+      position={node.position}
       onClick={openLink}
       onPointerOver={() => { document.body.style.cursor = "pointer"; }}
       onPointerOut={() => { document.body.style.cursor = "auto"; }}
     >
-      <pointLight color={badge.color} intensity={0.8} distance={1} />
-      <mesh renderOrder={1}>
+      <pointLight color={node.color} intensity={0.8} distance={0.8} />
+      <mesh>
         <sphereGeometry args={[node.size, 32, 32]} />
-        <meshPhysicalMaterial color="#0a1018" metalness={0.3} roughness={0.15} clearcoat={1} clearcoatRoughness={0.1} transparent opacity={0.78} depthWrite={false} emissive={badge.color} emissiveIntensity={0.18} />
+        <meshPhysicalMaterial color="#080d14" metalness={0.65} roughness={0.2} clearcoat={0.8} emissive={node.color} emissiveIntensity={0.16} />
       </mesh>
-      <sprite scale={[node.size * 1.55, node.size * 1.55, 1]} renderOrder={2}>
-        <spriteMaterial map={texture} transparent depthWrite={false} toneMapped={false} />
-      </sprite>
       <mesh scale={1.13}>
         <sphereGeometry args={[node.size, 20, 20]} />
-        <meshBasicMaterial color={badge.color} transparent opacity={0.12} depthWrite={false} />
+        <meshBasicMaterial color={node.color} transparent opacity={0.1} depthWrite={false} />
       </mesh>
+
+      {/* UPDATED ROTATION: Tilts the ring forward (X) and leans it significantly down to the left (Z) */}
       <mesh rotation={[0.45, 0.1, -0.35]}>
         <torusGeometry args={[node.size * 1.5, 0.006, 6, 32]} />
-        <meshBasicMaterial color={badge.color} transparent opacity={0.38} />
+        <meshBasicMaterial color={node.color} transparent opacity={0.38} />
       </mesh>
-      {info.mounted && (
-        <Html zIndexRange={[30, 10]} style={{ pointerEvents: "none" }}>
-          <InfoCard badge={badge} side={info.side} shown={info.shown} width={cardWidth} />
-        </Html>
-      )}
     </group>
   );
 };
@@ -489,253 +365,39 @@ const ringColorAt = (t) => {
   return RING_COLOR_STOPS[RING_COLOR_STOPS.length - 1][1];
 };
 
-const buildRingDiscTexture = (anisotropy) => {
-  const W = 1024;
-  const H = 1024;
-  const canvas = document.createElement("canvas");
-  canvas.width = W;
-  canvas.height = H;
-  const ctx = canvas.getContext("2d");
-  const image = ctx.createImageData(W, H);
+const useTermQueue = (terms) => {
+  const queue = useRef([]);
+  const previousTerm = useRef(null);
 
-  let seed = 7331;
-  const rand = () => {
-    seed = (seed * 16807) % 2147483647;
-    return (seed - 1) / 2147483646;
-  };
+  return useCallback(() => {
+    if (queue.current.length === 0) {
+      const shuffled = shuffleTerms(terms);
+      const differentTermIndex = shuffled.findIndex((term) => term !== previousTerm.current);
 
-  // fine concentric lines, like the reference's dozens of thin ringlets
-  const lines = Array.from({ length: 140 }, () => ({
-    c: rand(), w: 0.0008 + rand() * 0.0045, a: 0.35 + rand() * 0.65,
-  }));
+      if (previousTerm.current && shuffled[0] === previousTerm.current && differentTermIndex > 0) {
+        [shuffled[0], shuffled[differentTermIndex]] = [shuffled[differentTermIndex], shuffled[0]];
+      }
 
-  for (let y = 0; y < H; y += 1) {
-    const t = y / (H - 1); // canvas top = inner edge (flipY maps it to v = 1)
-    let fine = 0;
-    for (const l of lines) fine += l.a * Math.exp(-(((t - l.c) / l.w) ** 2));
-    fine = Math.min(fine, 1);
-    const base = ringProfile(t) * (0.5 + 0.7 * fine) * (0.85 + 0.3 * rand());
-    const [r, g, b] = ringColorAt(t);
-    // integer frequencies keep the streaks seamless where the texture wraps
-    const f1 = 2 + Math.floor(rand() * 12);
-    const f2 = 3 + Math.floor(rand() * 17);
-    const p1 = rand() * Math.PI * 2;
-    const p2 = rand() * Math.PI * 2;
-    for (let x = 0; x < W; x += 1) {
-      const u = x / W;
-      const streak = 0.78 + 0.22 * Math.sin(u * Math.PI * 2 * f1 + p1) * Math.sin(u * Math.PI * 2 * f2 + p2);
-      const k = Math.min(Math.max(base * streak, 0), 1.15);
-      const i = (y * W + x) * 4;
-      image.data[i] = Math.min(255, r * k);
-      image.data[i + 1] = Math.min(255, g * k);
-      image.data[i + 2] = Math.min(255, b * k);
-      image.data[i + 3] = 255; // intensity is baked into RGB; the material blends additively
+      queue.current.push(...shuffled);
     }
-  }
-  ctx.putImageData(image, 0, 0);
 
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.anisotropy = anisotropy;
-  return texture;
+    const nextTerm = queue.current.shift();
+    previousTerm.current = nextTerm;
+    return nextTerm;
+  }, [terms]);
 };
 
-const RingDisc = ({ phase }) => {
-  const { gl } = useThree();
-  const geometry = useMemo(() => createBandGeometry(RING_INNER, RING_OUTER, 384), []);
-  const texture = useMemo(() => buildRingDiscTexture(gl.capabilities.getMaxAnisotropy()), [gl]);
-  useEffect(() => () => { texture.dispose(); geometry.dispose(); }, [texture, geometry]);
+// Tilt: negative => bottom of the ring in front of the planet, top behind (image 2)
+// Roll: positive => major axis climbs to the right (~21°)
+const RING_TILT = -1.25;
+const RING_ROLL = 0.37;
+const RING_ROTATION = [RING_TILT, 0, RING_ROLL, "ZXY"];
 
-  // the grain slides slowly around the ring so the bands shimmer
-  useFrame(() => { texture.offset.x = (phase.current * 0.25) / (Math.PI * 2); });
-
-  return (
-    <>
-      {/* faint warm haze under the bands */}
-      <mesh>
-        <ringGeometry args={[RING_INNER - 0.1, RING_OUTER + 0.35, 128]} />
-        <meshBasicMaterial color="#ff9a2e" transparent opacity={0.06} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
-      </mesh>
-      <mesh geometry={geometry}>
-        <meshBasicMaterial map={texture} transparent opacity={0.92} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} side={THREE.DoubleSide} />
-      </mesh>
-    </>
-  );
-};
-
-/* ---- debris: dark rocks plus glittering dust drifting in the ring plane ---- */
-const RingDebris = ({ phase }) => {
-  const group = useRef();
-  const rockMesh = useRef();
-
-  const rocks = useMemo(() => {
-    let seed = 2468;
-    const rand = () => {
-      seed = (seed * 16807) % 2147483647;
-      return (seed - 1) / 2147483646;
-    };
-    return Array.from({ length: 80 }, () => {
-      const radius = RING_INNER + 0.1 + rand() * (RING_OUTER - RING_INNER);
-      const angle = rand() * Math.PI * 2;
-      return {
-        p: [Math.cos(angle) * radius, Math.sin(angle) * radius, (rand() - 0.5) * 0.08],
-        s: 0.022 + rand() * rand() * 0.075,
-        sy: 0.6 + rand() * 0.6,
-        r: [rand() * 6, rand() * 6, rand() * 6],
-      };
-    });
-  }, []);
-
-  const dust = useMemo(() => {
-    let seed = 1357;
-    const rand = () => {
-      seed = (seed * 16807) % 2147483647;
-      return (seed - 1) / 2147483646;
-    };
-    const positions = [];
-    for (let i = 0; i < 2600; i += 1) {
-      const t = Math.pow(rand(), 0.8);
-      const radius = RING_INNER - 0.1 + t * (RING_OUTER - RING_INNER + 0.5);
-      const angle = rand() * Math.PI * 2;
-      positions.push(Math.cos(angle) * radius, Math.sin(angle) * radius, (rand() - 0.5) * 0.12);
-    }
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-    return geometry;
-  }, []);
-
-  useEffect(() => {
-    const matrix = new THREE.Matrix4();
-    const quaternion = new THREE.Quaternion();
-    const euler = new THREE.Euler();
-    rocks.forEach((rock, i) => {
-      euler.set(...rock.r);
-      quaternion.setFromEuler(euler);
-      matrix.compose(new THREE.Vector3(...rock.p), quaternion, new THREE.Vector3(rock.s, rock.s * rock.sy, rock.s));
-      rockMesh.current.setMatrixAt(i, matrix);
-    });
-    rockMesh.current.instanceMatrix.needsUpdate = true;
-  }, [rocks]);
-
-  // debris drifts a little slower than the text lanes
-  useFrame(() => { if (group.current) group.current.rotation.z = phase.current * 0.45; });
-
-  return (
-    <group ref={group}>
-      <instancedMesh ref={rockMesh} args={[null, null, rocks.length]}>
-        <icosahedronGeometry args={[1, 0]} />
-        <meshStandardMaterial color="#1b1410" roughness={0.95} metalness={0.1} emissive="#2a1a0a" emissiveIntensity={0.45} flatShading />
-      </instancedMesh>
-      <points geometry={dust}>
-        <pointsMaterial color="#ffd9a0" size={0.075} sizeAttenuation transparent opacity={0.55} depthWrite={false} blending={THREE.AdditiveBlending} />
-      </points>
-    </group>
-  );
-};
-
-/* ---- text lanes (wide ones carry the moons, thin ones are dense data) ------ */
-const buildRingTextTexture = ({ radius, bandWidth, color, seedOffset, anisotropy, dense }) => {
-  const width = BAND_TEXTURE_WIDTH;
-  const circumference = Math.PI * 2 * radius;
-  const height = Math.max(dense ? 32 : 64, Math.round((width * bandWidth) / circumference));
-
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext("2d");
-  const fontSize = Math.round(height * (dense ? 0.68 : 0.52));
-  ctx.font = `600 ${fontSize}px Poppins, sans-serif`;
-  ctx.textBaseline = "middle";
-  ctx.shadowColor = color;
-  ctx.shadowBlur = fontSize * (dense ? 0.25 : 0.4);
-
-  let seed = 9001 + seedOffset * 131;
-  const rand = () => {
-    seed = (seed * 16807) % 2147483647;
-    return (seed - 1) / 2147483646;
-  };
-  const pickToken = () => {
-    if (!dense && rand() < 0.25) return HASHTAGS[Math.floor(rand() * HASHTAGS.length)];
-    const word = FUTURE_TERMS[Math.floor(rand() * FUTURE_TERMS.length)];
-    return dense ? word.toLowerCase() : word.toUpperCase();
-  };
-
-  let x = 0;
-  while (x < width) {
-    const token = pickToken();
-    ctx.globalAlpha = dense ? 0.62 : token.startsWith("#") ? 0.95 : 0.78;
-    ctx.fillStyle = color;
-    const tokenWidth = ctx.measureText(token).width;
-    if (x + tokenWidth > width) break; // leave a gap at the seam instead of cutting a word
-    ctx.fillText(token, x, height / 2);
-    x += tokenWidth + fontSize * (dense ? 0.9 : 1.2);
-  }
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.anisotropy = anisotropy;
-  return texture;
-};
-
-const RingTextBand = ({ layer, index, phase }) => {
-  const { gl } = useThree();
-  const [fontReady, setFontReady] = useState(false);
-
-  // The canvas is drawn once, so wait for Poppins before building the texture.
-  useEffect(() => {
-    let alive = true;
-    const done = () => alive && setFontReady(true);
-    if (document.fonts?.load) document.fonts.load("600 20px Poppins").then(done, done);
-    else done();
-    return () => { alive = false; };
-  }, []);
-
-  const geometry = useMemo(
-    () => createBandGeometry(layer.radius - layer.w / 2, layer.radius + layer.w / 2),
-    [layer.radius, layer.w]
-  );
-  const texture = useMemo(
-    () => buildRingTextTexture({
-      radius: layer.radius,
-      bandWidth: layer.w,
-      color: layer.color,
-      seedOffset: index,
-      anisotropy: gl.capabilities.getMaxAnisotropy(),
-      dense: layer.dense,
-    }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [layer.radius, layer.w, layer.color, layer.dense, index, gl, fontReady]
-  );
-
-  useEffect(() => () => { texture.dispose(); geometry.dispose(); }, [texture, geometry]);
-
-  useFrame(() => {
-    texture.offset.x = -(phase.current * (layer.speed || 1) + index * 0.17) / (Math.PI * 2);
-  });
-
-  return (
-    <mesh geometry={geometry}>
-      <meshBasicMaterial map={texture} transparent depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} side={THREE.DoubleSide} />
-    </mesh>
-  );
-};
-
-// Thin rails along both edges of a wide text lane.
-const RingLayer = ({ layer, index, phase }) => (
-  <group rotation={layer.rotation}>
-    <mesh>
-      <torusGeometry args={[layer.radius - layer.w / 2, 0.004, 4, 240]} />
-      <meshBasicMaterial color={layer.color} transparent opacity={0.45} depthWrite={false} blending={THREE.AdditiveBlending} />
-    </mesh>
-    <mesh>
-      <torusGeometry args={[layer.radius + layer.w / 2, 0.004, 4, 240]} />
-      <meshBasicMaterial color={layer.color} transparent opacity={0.45} depthWrite={false} blending={THREE.AdditiveBlending} />
-    </mesh>
-    <RingTextBand layer={layer} index={index} phase={phase} />
-  </group>
-);
+const RING_LAYERS = [
+  { radius: 3.4, rotation: RING_ROTATION, color: "#ffd784" },
+  { radius: 3.55, rotation: RING_ROTATION, color: "#b88b45" },
+  { radius: 3.7, rotation: RING_ROTATION, color: "#f7d09a" },
+];
 
 const OrbitingTechNode = ({ node, phase, textures, claimBadge, reportRatio, turn, onInfoClosed }) => {
   const outer = useRef();
@@ -820,9 +482,113 @@ const OrbitingTechNode = ({ node, phase, textures, claimBadge, reportRatio, turn
   );
 };
 
-/* -------------------------------------------------------------------------- */
-/*  Planet, flare, ring system                                                */
-/* -------------------------------------------------------------------------- */
+const DataLabel = ({ word, position, color, index, onPassBehind }) => {
+  const label = useRef();
+  const content = useRef();
+  const worldPosition = useMemo(() => new THREE.Vector3(), []);
+  const laneColor = useMemo(() => new THREE.Color(color), [color]);
+  const foregroundColor = useMemo(() => new THREE.Color("#fff5cf"), []);
+  const resolvedColor = useMemo(() => new THREE.Color(), []);
+  const hasReachedFront = useRef(false);
+
+  useFrame(() => {
+    if (!label.current || !content.current) return;
+    label.current.getWorldPosition(worldPosition);
+    const visibility = THREE.MathUtils.smoothstep(worldPosition.z, -1.35, 0.35);
+
+    if (worldPosition.z > -0.2) hasReachedFront.current = true;
+    if (hasReachedFront.current && worldPosition.z < -0.9) {
+      hasReachedFront.current = false;
+      onPassBehind();
+    }
+    content.current.style.opacity = `${0.08 + visibility * (0.76 - index * 0.08)}`;
+    resolvedColor.copy(laneColor).lerp(foregroundColor, visibility * 0.82);
+    content.current.style.color = resolvedColor.getStyle();
+    content.current.style.textShadow = visibility > 0.55
+      ? "0 0 5px rgba(255,245,207,.85), 0 0 13px rgba(255,182,75,.55)"
+      : "0 1px 10px #100604";
+  });
+
+  return (
+    <group ref={label} position={position}>
+      <Html center distanceFactor={18} zIndexRange={[0, 0]} style={{ pointerEvents: "none", whiteSpace: "nowrap" }}>
+        <span
+          ref={content}
+          style={{
+            color,
+            fontSize: "8px",
+            fontWeight: 600,
+            letterSpacing: "0.08em",
+            textShadow: "0 1px 10px #100604",
+            transition: "opacity 140ms linear",
+          }}
+        >
+          {word}
+        </span>
+      </Html>
+    </group>
+  );
+};
+
+const RingLayer = ({ layer, index, phase, nextTerm }) => {
+  const stream = useRef();
+  const [words, setWords] = useState(() => (
+    Array.from({ length: VISIBLE_TERMS_PER_RING }, () => nextTerm())
+  ));
+
+  const replaceWord = useCallback((wordIndex) => {
+    setWords((currentWords) => {
+      const nextWords = [...currentWords];
+      nextWords[wordIndex] = nextTerm();
+      return nextWords;
+    });
+  }, [nextTerm]);
+
+  useFrame(({ clock }) => {
+    if (!mesh.current) return;
+    // sun direction into view space, to match the view-space normals in the shader
+    uniforms.uSun.value.copy(sunDir).transformDirection(mesh.current.matrixWorld).transformDirection(camera.matrixWorldInverse);
+    const t = clock.getElapsedTime();
+    uniforms.uPulse.value = 1 + 0.08 * Math.sin(t * 1.7) + 0.05 * Math.sin(t * 4.3 + 1.2);
+  });
+
+  return (
+    <mesh ref={mesh} scale={1.014}>
+      <sphereGeometry args={[1.55, 96, 64]} />
+      <shaderMaterial
+        transparent
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+        uniforms={uniforms}
+        vertexShader={rimVertexShader}
+        fragmentShader={rimFragmentShader}
+      />
+    </mesh>
+    <mesh scale={[1, 1, 0.994]}>
+      <torusGeometry args={[layer.radius - 0.056, 0.003, 4, 180]} />
+      <meshBasicMaterial color={layer.color} transparent opacity={0.22} depthWrite={false} />
+    </mesh>
+    <group ref={stream}>
+    {words.map((word, wordIndex) => {
+      const angle = (wordIndex / words.length) * Math.PI * 2 + index * 0.28;
+      const x = Math.cos(angle) * layer.radius;
+      const y = Math.sin(angle) * layer.radius;
+      return (
+        <DataLabel
+          key={wordIndex}
+          position={[x, y, 0.055]}
+          word={word}
+          color={layer.color}
+          index={index}
+          onPassBehind={() => replaceWord(wordIndex)}
+        />
+      );
+    })}
+    </group>
+  </group>
+  );
+};
+
 const usePlanetTexture = () => useMemo(() => {
   const canvas = document.createElement("canvas");
   canvas.width = 1024;
@@ -855,210 +621,41 @@ const usePlanetTexture = () => useMemo(() => {
   return texture;
 }, []);
 
-/* -------------------------------------------------------------------------- */
-/*  Sun: hot core, bloom, long rays, lit planet rim                           */
-/* -------------------------------------------------------------------------- */
-const SUN_POSITION = [1.42, 0.52, 0.82];
-const SUN_SIZE = 7; // world units; the flare fades to nothing before the plane's edge
-
-const flareVertexShader = `
-  varying vec2 vUv;
-  void main() {
-    vUv = uv;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-  }
-`;
-
-const flareFragmentShader = `
-  varying vec2 vUv;
-  uniform float uTime;
-  uniform float uIntensity;
-
-  float hash(float n) { return fract(sin(n * 12.9898) * 43758.5453); }
-
-  void main() {
-    vec2 p = (vUv - 0.5) * 2.0;
-    float r = length(p);
-    float a = atan(p.y, p.x);
-
-    // white-hot core, orange bloom, wide warm haze
-    float core  = exp(-r * r * 1100.0) * 1.8;
-    float bloom = exp(-r * 9.0) * 0.85;
-    float haze  = exp(-r * 3.0) * 0.32;
-
-    // long thin rays that slowly turn and flicker, each with its own length and width
-    float rays = 0.0;
-    for (int i = 0; i < 20; i++) {
-      float fi = float(i);
-      float dir = (mod(fi, 2.0) < 1.0) ? 1.0 : -1.0;
-      float ang = hash(fi + 1.0) * 6.28318 + uTime * (0.015 + hash(fi + 7.0) * 0.045) * dir;
-      float d = abs(mod(a - ang + 3.14159, 6.28318) - 3.14159);
-      float len = 0.3 + 0.7 * hash(fi + 13.0);
-      len *= 0.9 + 0.1 * sin(uTime * (0.8 + hash(fi + 3.0) * 1.4) + fi);   // rays breathe in length
-      float width = 0.010 + 0.026 * hash(fi + 21.0);
-      float flick = 0.72 + 0.28 * sin(uTime * (1.3 + hash(fi + 5.0) * 2.2) + fi * 1.7);
-      rays += exp(-(d * d) / (width * width)) * smoothstep(len, 0.0, r) * flick * (0.35 + 0.65 * hash(fi + 31.0));
-    }
-    rays *= exp(-r * 1.6);
-
-    // faint horizontal lens streak
-    float streak = exp(-abs(p.y) * 55.0) * exp(-abs(p.x) * 2.4) * 0.22;
-
-    vec3 col = vec3(1.0, 0.95, 0.78) * core
-             + vec3(1.0, 0.74, 0.28) * (bloom + rays * 0.95 + streak)
-             + vec3(1.0, 0.46, 0.10) * haze;
-
-    float edge = smoothstep(1.0, 0.72, r);
-    gl_FragColor = vec4(col * uIntensity * edge, 1.0);
-  }
-`;
-
 const SolarFlare = () => {
-  const group = useRef();
-  const mesh = useRef();
-  const light = useRef();
-  const uniforms = useMemo(() => ({ uTime: { value: 0 }, uIntensity: { value: 1 } }), []);
-
-  useFrame(({ clock }) => {
-    const t = clock.getElapsedTime();
-    const pulse = 1 + 0.08 * Math.sin(t * 1.7) + 0.05 * Math.sin(t * 4.3 + 1.2);
-    uniforms.uTime.value = t;
-    uniforms.uIntensity.value = pulse;
-    if (light.current) light.current.intensity = 18 * pulse;
-    if (group.current) {
-      // the sun creeps a little along the planet's limb
-      group.current.position.set(
-        SUN_POSITION[0] + Math.sin(t * 0.21) * 0.07,
-        SUN_POSITION[1] + Math.cos(t * 0.17) * 0.05,
-        SUN_POSITION[2]
-      );
-    }
-    if (mesh.current) {
-      const breathe = 1 + 0.03 * Math.sin(t * 0.9);
-      mesh.current.scale.set(breathe, breathe, 1);
-    }
-  });
+  const map = useMemo(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 512;
+    const context = canvas.getContext("2d");
+    const glow = context.createRadialGradient(256, 256, 0, 256, 256, 256);
+    glow.addColorStop(0, "rgba(255,255,235,1)");
+    glow.addColorStop(0.08, "rgba(255,224,130,.96)");
+    glow.addColorStop(0.28, "rgba(255,166,36,.34)");
+    glow.addColorStop(1, "rgba(255,130,0,0)");
+    context.fillStyle = glow;
+    context.fillRect(0, 0, 512, 512);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    return texture;
+  }, []);
 
   return (
-    <group ref={group} position={SUN_POSITION}>
-      <pointLight ref={light} intensity={18} distance={7} color="#ffc466" />
-      {/* counter-rotate the planet's tilt so the flare plane faces the camera */}
-      <group rotation={[-0.04, 0, 0]}>
-        <mesh ref={mesh} renderOrder={10}>
-          <planeGeometry args={[SUN_SIZE, SUN_SIZE]} />
-          <shaderMaterial
-            transparent
-            depthTest={false}
-            depthWrite={false}
-            blending={THREE.AdditiveBlending}
-            uniforms={uniforms}
-            vertexShader={flareVertexShader}
-            fragmentShader={flareFragmentShader}
-          />
-        </mesh>
-      </group>
+    <group position={[1.42, 0.52, 0.82]}>
+      <pointLight intensity={18} distance={7} color="#ffc466" />
+      <sprite scale={[2.3, 2.3, 1]}><spriteMaterial map={map} transparent depthWrite={false} blending={THREE.AdditiveBlending} /></sprite>
+      <mesh rotation={[0, 0, Math.PI / 4]}><planeGeometry args={[3.3, 0.025]} /><meshBasicMaterial color="#ffd27a" transparent opacity={0.42} depthWrite={false} blending={THREE.AdditiveBlending} /></mesh>
+      <mesh rotation={[0, 0, -Math.PI / 3]}><planeGeometry args={[2.6, 0.018]} /><meshBasicMaterial color="#ffd27a" transparent opacity={0.28} depthWrite={false} blending={THREE.AdditiveBlending} /></mesh>
     </group>
-  );
-};
-
-// Thin golden rim along the planet's limb, strongest on the side facing the sun.
-const rimVertexShader = `
-  varying vec3 vN;
-  varying vec3 vV;
-  void main() {
-    vec4 mv = modelViewMatrix * vec4(position, 1.0);
-    vN = normalize(normalMatrix * normal);
-    vV = normalize(-mv.xyz);
-    gl_Position = projectionMatrix * mv;
-  }
-`;
-
-const rimFragmentShader = `
-  uniform vec3 uSun;
-  uniform float uPulse;
-  varying vec3 vN;
-  varying vec3 vV;
-  void main() {
-    vec3 n = normalize(vN);
-    float fres = pow(1.0 - max(dot(n, normalize(vV)), 0.0), 3.0);
-    float lit = smoothstep(-0.1, 0.85, dot(n, normalize(uSun)));
-    vec3 col = mix(vec3(1.0, 0.5, 0.15), vec3(1.0, 0.92, 0.62), lit);
-    gl_FragColor = vec4(col * fres * (0.1 + 1.5 * lit) * uPulse, 1.0);
-  }
-`;
-
-const PlanetRim = () => {
-  const mesh = useRef();
-  const camera = useThree((state) => state.camera);
-  const uniforms = useMemo(() => ({ uSun: { value: new THREE.Vector3(1, 0.4, 0.6) }, uPulse: { value: 1 } }), []);
-  const sunDir = useMemo(() => new THREE.Vector3(...SUN_POSITION).normalize(), []);
-
-  useFrame(({ clock }) => {
-    if (!mesh.current) return;
-    // sun direction into view space, to match the view-space normals in the shader
-    uniforms.uSun.value.copy(sunDir).transformDirection(mesh.current.matrixWorld).transformDirection(camera.matrixWorldInverse);
-    const t = clock.getElapsedTime();
-    uniforms.uPulse.value = 1 + 0.08 * Math.sin(t * 1.7) + 0.05 * Math.sin(t * 4.3 + 1.2);
-  });
-
-  return (
-    <mesh ref={mesh} scale={1.014}>
-      <sphereGeometry args={[1.55, 96, 64]} />
-      <shaderMaterial
-        transparent
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-        uniforms={uniforms}
-        vertexShader={rimVertexShader}
-        fragmentShader={rimFragmentShader}
-      />
-    </mesh>
   );
 };
 
 const RotatableRingSystem = () => {
   const phase = useRef(0);
   const drag = useRef({ active: false, previousX: 0, velocity: 0 });
-  const badgeTextures = useBadgeTextures();
-  const shownBadges = useRef(new Set(TECH_NODES.map((n) => n.badge)));
-
-  // Info-card scheduler: every few seconds one moon that is on the front of the ring opens its card.
-  const moonRatios = useRef({});
-  const lastInfoMoon = useRef(null);
-  const infoTimer = useRef();
-  const [turn, setTurn] = useState(null);
-
-  const reportRatio = useCallback((name, ratio) => { moonRatios.current[name] = ratio; }, []);
-
-  const scheduleNext = useCallback((delay) => {
-    clearTimeout(infoTimer.current);
-    const pick = () => {
-      const front = Object.keys(moonRatios.current).filter((n) => moonRatios.current[n] > 0.45);
-      if (!front.length) { infoTimer.current = setTimeout(pick, 1000); return; }
-      const fresh = front.filter((n) => n !== lastInfoMoon.current);
-      const pool = fresh.length ? fresh : front;
-      const name = pool[Math.floor(Math.random() * pool.length)];
-      lastInfoMoon.current = name;
-      setTurn({ name, key: Date.now() });
-    };
-    infoTimer.current = setTimeout(pick, delay);
-  }, []);
-
-  const onInfoClosed = useCallback(() => scheduleNext(INFO_GAP), [scheduleNext]);
-
-  useEffect(() => {
-    scheduleNext(INFO_FIRST_DELAY);
-    return () => clearTimeout(infoTimer.current);
-  }, [scheduleNext]);
-
-  // Hands a moon a new badge that no other moon is currently showing.
-  const claimBadge = useCallback((current) => {
-    const free = BADGES.map((_, i) => i).filter((i) => !shownBadges.current.has(i));
-    const next = free[Math.floor(Math.random() * free.length)];
-    shownBadges.current.delete(current);
-    shownBadges.current.add(next);
-    return next;
-  }, []);
+  const nextAiTerm = useTermQueue(AI_TERMS);
+  const nextSystemTerm = useTermQueue(SYSTEM_TERMS);
+  const nextFutureTerm = useTermQueue(FUTURE_TERMS);
+  const termQueues = [nextAiTerm, nextSystemTerm, nextFutureTerm];
 
   useFrame((_, delta) => {
     if (drag.current.active) return;
@@ -1086,8 +683,15 @@ const RotatableRingSystem = () => {
 
   return (
     <group position={[0, 0, 0]}>
-      <mesh position={[0, 0, -1.85]} onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerOut={endDrag}>
-        <circleGeometry args={[5.0, 64]} />
+      <mesh
+        position={[0, 0, -1.85]}
+        onPointerDown={startDrag}
+        onPointerMove={moveDrag}
+        onPointerUp={endDrag}
+        onPointerOut={endDrag}
+      >
+        <circleGeometry args={[4.0, 64]} />
+        <circleGeometry args={[4.4, 64]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
       {/* ring body, debris and fine data lanes share one tilted plane */}
@@ -1097,7 +701,7 @@ const RotatableRingSystem = () => {
         {DATA_LANES.map((lane, i) => <RingTextBand key={lane.radius} layer={lane} index={i + 3} phase={phase} />)}
       </group>
       {RING_LAYERS.map((layer, index) => (
-        <RingLayer key={layer.radius} layer={layer} index={index} phase={phase} />
+        <RingLayer key={layer.radius} layer={layer} index={index} phase={phase} nextTerm={termQueues[index]} />
       ))}
       {TECH_NODES.map((node) => <OrbitingTechNode key={node.name} node={node} phase={phase} textures={badgeTextures} claimBadge={claimBadge} reportRatio={reportRatio} turn={turn} onInfoClosed={onInfoClosed} />)}
     </group>
@@ -1108,103 +712,37 @@ const DeveloperCore = () => {
   const { size } = useThree();
   const mobile = size.width < 720;
   const planetTexture = usePlanetTexture();
-  const scale = mobile ? 0.5 : 1.05;
-  const position = mobile ? [0, -1.6, 0] : [1.2, -0.25, 0];
-
+  const scale = mobile ? 0.72 : 1.05;
+  const position = mobile ? [0.45, -0.9, 0] : [1.2, -0.25, 0];
   return (
     <group position={position} scale={scale} rotation={[0.04, 0, 0]}>
       <ambientLight intensity={0.18} color="#283149" />
       <pointLight position={[2.5, 1.8, 3]} intensity={22} distance={8} color="#ffc466" />
       <pointLight position={[-2.4, -1.5, 2]} intensity={1.8} distance={6} color="#4a5c8c" />
-      <mesh>
-        <sphereGeometry args={[1.55, 96, 64]} />
-        <meshPhysicalMaterial map={planetTexture} color="#ffffff" roughness={0.62} metalness={0.08} clearcoat={0.16} clearcoatRoughness={0.68} />
-      </mesh>
-      <PlanetRim />
+      <mesh><sphereGeometry args={[1.55, 96, 64]} /><meshPhysicalMaterial map={planetTexture} color="#ffffff" roughness={0.62} metalness={0.08} clearcoat={0.16} clearcoatRoughness={0.68} /></mesh>
+      <mesh scale={1.018}><sphereGeometry args={[1.55, 64, 48]} /><meshBasicMaterial color="#c48956" transparent opacity={0.08} side={THREE.BackSide} depthWrite={false} /></mesh>
       <SolarFlare />
       <RotatableRingSystem />
     </group>
   );
 };
 
-// Far camera + narrow fov = flat perspective, so the ring's near half doesn't balloon off-screen.
-const HeroScene = () => (
-  <Canvas camera={{ position: [0, 0, 17.4], fov: 20.2, near: 0.1, far: 80 }} dpr={[1, 2]} gl={{ antialias: true, alpha: true }}>
-    <ambientLight intensity={0.14} color="#6f7fa6" />
-    <CosmicDust />
-    <DeveloperCore />
-  </Canvas>
+const HeroScene = () => <Canvas camera={{ position: [0, 0, 17.4], fov: 20.2, near: 0.1, far: 80 }} dpr={[1, 2]} gl={{ antialias: true, alpha: true }}>
+  <ambientLight intensity={0.14} color="#6f7fa6" />
+  <CosmicDust />
+  <DeveloperCore />
+</Canvas>;
+
+const Hero = () => (
+  <section className="relative w-full h-screen mx-auto overflow-hidden bg-[#030812]">
+    <div className="absolute inset-0 z-0"><HeroScene /></div>
+    <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_66%_43%,rgba(230,129,37,0.12),transparent_24%),radial-gradient(circle_at_6%_10%,rgba(8,31,61,0.24),transparent_32%),linear-gradient(180deg,rgba(1,5,13,0.05),rgba(1,5,13,0.6)_92%)]" />
+    <div className={`pointer-events-none absolute inset-0 top-[120px] z-10 max-w-7xl mx-auto ${styles.paddingX} flex flex-row items-start gap-5`}>
+      <div className="flex flex-col justify-center items-center mt-5"><div className="w-5 h-5 rounded-full bg-[#ffc46b] shadow-[0_0_28px_rgba(255,196,107,0.85)]" /><div className="w-1 sm:h-80 h-40 bg-gradient-to-b from-[#ffc46b] via-[#b3401f] to-transparent" /></div>
+      <div><p className="mb-3 text-sm font-medium uppercase tracking-[0.28em] text-[#ffd784]/85">Developer Core</p><h1 className={`${styles.heroHeadText} text-white`}>Hi, I'm <span className="text-[#ffd784]">Yash</span></h1><p className={`${styles.heroSubText} mt-2 max-w-xl text-[#e8edf8]`}>I develop Web Applications<br className="sm:block hidden" />and Maintain Developed <br className="sm:block hidden" />Applications</p><p className="mt-6 max-w-sm text-sm leading-6 text-[#d8e0ee]/60">A persistent data plane orbits the core. Drag the system to inspect the moving stream.</p></div>
+    </div>
+    <div className="absolute xs:bottom-10 bottom-32 z-20 w-full flex justify-center items-center"><a href="#about" aria-label="Scroll to about section"><div className="w-[35px] h-[64px] rounded-3xl border-4 border-[#ffc46b]/70 bg-[#1a0a04]/30 flex justify-center items-start p-2 shadow-[0_0_28px_rgba(255,122,42,0.24)] backdrop-blur-sm"><motion.div animate={{ y: [0, 24, 0] }} transition={{ duration: 1.5, repeat: Infinity, repeatType: "loop" }} className="w-3 h-3 rounded-full bg-[#ffc46b] mb-1" /></div></a></div>
+  </section>
 );
-
-/* -------------------------------------------------------------------------- */
-/*  Hero                                                                      */
-/* -------------------------------------------------------------------------- */
-const Hero = () => {
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => setIndex((prev) => (prev + 1) % headlines.length), 3600);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <section className="relative w-full h-screen mx-auto overflow-hidden bg-[#030812]">
-      {/* 3D scene: receives pointer events so the rings can be dragged */}
-      <div className="absolute inset-0 z-0"><HeroScene /></div>
-
-      <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_66%_43%,rgba(230,129,37,0.12),transparent_24%),radial-gradient(circle_at_6%_10%,rgba(8,31,61,0.24),transparent_32%),linear-gradient(180deg,rgba(1,5,13,0.05),rgba(1,5,13,0.6)_92%)]" />
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-36 bg-gradient-to-b from-[#050816]/90 to-transparent" />
-
-      <div className={`pointer-events-none absolute inset-0 top-[120px] z-10 max-w-7xl mx-auto ${styles.paddingX} flex flex-row items-start gap-5`}>
-        <div className="flex flex-col justify-center items-center mt-5">
-          <div className="w-5 h-5 rounded-full bg-[#ffc46b] shadow-[0_0_28px_rgba(255,196,107,0.85)]" />
-          <div className="w-1 sm:h-80 h-40 bg-gradient-to-b from-[#ffc46b] via-[#b3401f] to-transparent" />
-        </div>
-
-        <div>
-          <h1 className={`${styles.heroHeadText} text-white`}>
-            Hi, I'm <span className="text-[#ffd784]">Yash</span>
-          </h1>
-
-          <p className="text-secondary font-medium lg:text-[22px] sm:text-[18px] text-[15px] mt-1">
-            And you are here for a Reason
-          </p>
-
-          <div className="min-h-[110px] sm:min-h-[100px] mt-2 flex items-start">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -14 }}
-                transition={{ duration: 0.4, ease: "easeInOut" }}
-              >
-                <p className="text-secondary font-medium lg:text-[20px] sm:text-[17px] text-[14px] mb-1">
-                  {headlines[index].lead}
-                </p>
-                <p className={`${styles.heroSubText} text-white-100 leading-normal max-w-xl`}>
-                  <span>{headlines[index].prefix} </span>
-                  <span className="text-[#ffd784] font-bold">{headlines[index].highlight}</span>
-                </p>
-              </motion.div>
-            </AnimatePresence>
-          </div>
-        </div>
-      </div>
-
-      <div className="absolute xs:bottom-10 bottom-32 z-20 w-full flex justify-center items-center">
-        <a href="#about" aria-label="Scroll to about section">
-          <div className="w-[35px] h-[64px] rounded-3xl border-4 border-[#ffc46b]/70 bg-[#1a0a04]/30 flex justify-center items-start p-2 shadow-[0_0_28px_rgba(255,122,42,0.24)] backdrop-blur-sm">
-            <motion.div
-              animate={{ y: [0, 24, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity, repeatType: "loop" }}
-              className="w-3 h-3 rounded-full bg-[#ffc46b] mb-1"
-            />
-          </div>
-        </a>
-      </div>
-    </section>
-  );
-};
 
 export default Hero;
