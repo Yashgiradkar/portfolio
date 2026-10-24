@@ -64,9 +64,9 @@ const AivonFlagship = () => {
       {/* ── 1. HERO ─────────────────────────────────────────────── */}
       <div className='space-y-5'>
         {/* Badges */}
-        <div className='inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-[#915EFF]/20 to-[#7945eb]/10 border border-[#915EFF]/50'>
-          <span className='w-3.5 h-3.5 rounded-full bg-[#915EFF]' />
-          <span className='text-[#dfd9ff] font-mono text-[11px] font-bold uppercase tracking-[0.15em]'>
+        <div className='inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-gold/20 to-[#b9792e]/10 border border-gold/50'>
+          <motion.span animate={{ scale: [1, 1.5, 1], opacity: [1, 0.45, 1] }} transition={{ duration: 1.8, repeat: Infinity }} className='w-3.5 h-3.5 rounded-full bg-gold shadow-[0_0_12px_rgba(255,215,132,0.9)]' />
+          <span className='text-[#f2dfbd] font-mono text-[11px] font-bold uppercase tracking-[0.15em]'>
             The AI Customer Support Platform
           </span>
         </div>
@@ -75,7 +75,7 @@ const AivonFlagship = () => {
         <div>
           <h2 className='text-white font-black text-[28px] sm:text-[38px] lg:text-[44px] leading-[1.15] tracking-tight'>
             Turn your company's knowledge into{" "}
-            <span className='text-transparent bg-clip-text bg-gradient-to-r from-[#915EFF] via-[#b395ff] to-white'>
+            <span className='text-transparent bg-clip-text bg-gradient-to-r from-gold via-gold-light to-white'>
               instant customer answers.
             </span>
           </h2>
@@ -87,7 +87,7 @@ const AivonFlagship = () => {
         </div>
 
         {/* CTA Strip */}
-        <div className='flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#915EFF]/20 via-tertiary to-black-100 border border-[#915EFF]/30'>
+        <div className='flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-gold/20 via-tertiary to-black-100 border border-gold/30'>
           <div className='flex-1 space-y-0.5'>
             <p className='text-white font-semibold text-sm'>See it live in production</p>
             <p className='text-secondary text-xs font-mono'>aivon-dashboard.vercel.app</p>
@@ -96,7 +96,7 @@ const AivonFlagship = () => {
             href='https://aivon-dashboard.vercel.app/'
             target='_blank'
             rel='noopener noreferrer'
-            className='bg-gradient-to-r from-[#915EFF] to-[#7945eb] hover:opacity-90 text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-[#915EFF]/25 flex items-center gap-2 transition-all active:scale-95 flex-shrink-0'
+            className='bg-gradient-to-r from-gold to-[#b9792e] hover:opacity-90 text-[#17130e] font-bold text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-gold/25 flex items-center gap-2 transition-all active:scale-95 flex-shrink-0'
           >
             Launch Dashboard ↗
           </a>
@@ -105,7 +105,7 @@ const AivonFlagship = () => {
 
       {/* ── 2. PROBLEMS SOLVED ──────────────────────────────────── */}
       <div className='space-y-4'>
-        <p className='text-xs font-mono font-bold text-[#915EFF] uppercase tracking-widest'>
+        <p className='text-xs font-mono font-bold text-gold uppercase tracking-widest'>
           Problems It Solves
         </p>
         <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
@@ -117,15 +117,15 @@ const AivonFlagship = () => {
               whileInView='show'
               custom={i}
               viewport={{ once: true }}
-              className='p-4 rounded-xl bg-tertiary/70 border border-white/[0.08] hover:border-[#915EFF]/40 transition-all group'
+              className='p-4 rounded-xl bg-tertiary/70 border border-white/[0.08] hover:border-gold/40 transition-all group'
             >
               <div className='flex items-start gap-3'>
-                <span className='text-xl flex-shrink-0 mt-0.5'>{item.icon}</span>
+                <motion.span whileHover={{ rotate: 12, scale: 1.2 }} className='text-xl flex-shrink-0 mt-0.5'>{item.icon}</motion.span>
                 <div className='space-y-1'>
                   <p className='text-secondary text-[11.5px] line-through decoration-white/25 leading-snug'>
                     {item.problem}
                   </p>
-                  <p className='text-white font-semibold text-[13.5px] leading-snug group-hover:text-[#dfd9ff] transition-colors'>
+                  <p className='text-white font-semibold text-[13.5px] leading-snug group-hover:text-[#f2dfbd] transition-colors'>
                     {item.solution}
                   </p>
                 </div>
@@ -138,7 +138,7 @@ const AivonFlagship = () => {
       {/* ── 3. CORE CAPABILITIES ────────────────────────────────── */}
       <div className='space-y-4'>
         <div className='flex items-center justify-between'>
-          <p className='text-xs font-mono font-bold text-[#915EFF] uppercase tracking-widest'>
+          <p className='text-xs font-mono font-bold text-gold uppercase tracking-widest'>
             What's Inside
           </p>
         </div>
@@ -152,13 +152,13 @@ const AivonFlagship = () => {
               whileInView='show'
               custom={i * 0.4}
               viewport={{ once: true }}
-              className='flex items-center gap-3 p-3.5 rounded-xl bg-black-100/80 border border-white/[0.06] hover:border-[#915EFF]/35 transition-all group cursor-default'
+              className='flex items-center gap-3 p-3.5 rounded-xl bg-black-100/80 border border-white/[0.06] hover:border-gold/35 transition-all group cursor-default'
             >
-              <span className='text-base w-8 h-8 flex items-center justify-center rounded-lg bg-tertiary border border-white/10 flex-shrink-0'>
+              <motion.span whileHover={{ rotate: [0, -8, 8, 0], scale: 1.1 }} className='text-base w-8 h-8 flex items-center justify-center rounded-lg bg-tertiary border border-white/10 flex-shrink-0'>
                 {cap.icon}
-              </span>
+              </motion.span>
               <div className='min-w-0'>
-                <p className='text-white font-semibold text-[12.5px] group-hover:text-[#dfd9ff] transition-colors leading-tight'>
+                <p className='text-white font-semibold text-[12.5px] group-hover:text-[#f2dfbd] transition-colors leading-tight'>
                   {cap.name}
                 </p>
                 <p className='text-secondary text-[11px] leading-snug mt-0.5'>
@@ -179,7 +179,7 @@ const AivonFlagship = () => {
           {stackPills.map((tech) => (
             <span
               key={tech}
-              className='px-2.5 py-1 text-[11px] font-mono rounded-lg bg-tertiary/60 border border-white/10 text-secondary hover:text-white hover:border-[#915EFF]/40 transition-colors cursor-default'
+              className='px-2.5 py-1 text-[11px] font-mono rounded-lg bg-tertiary/60 border border-white/10 text-secondary hover:text-white hover:border-gold/40 transition-colors cursor-default'
             >
               {tech}
             </span>

@@ -25,9 +25,9 @@ const ProjectCard = ({
           scale: 1,
           speed: 450,
         }}
-        className='bg-tertiary p-5 rounded-2xl sm:w-[360px] w-full'
+        className='group bg-tertiary p-5 rounded-2xl sm:w-[360px] w-full border border-transparent hover:border-gold/35 transition-colors duration-300'
       >
-        <div className='relative w-full h-[230px]'>
+        <div className='relative w-full h-[230px] overflow-hidden rounded-2xl'>
           <img
             src={image}
             alt={`Screenshot and preview of ${name}`}
@@ -35,7 +35,7 @@ const ProjectCard = ({
             decoding='async'
             width='360'
             height='230'
-            className='w-full h-full object-cover rounded-2xl'
+            className='w-full h-full object-cover rounded-2xl transition-transform duration-700 group-hover:scale-105'
           />
 
           <div className='absolute inset-0 flex justify-end m-3 card-img_hover'>
@@ -82,7 +82,7 @@ const Works = () => {
   return (
     <>
       <motion.div variants={textVariant()}>
-        <p className={`${styles.sectionSubText} `}>My work</p>
+        <p className={styles.sectionSubText}>My work</p>
         <h2 className={`${styles.sectionHeadText}`}>Projects.</h2>
       </motion.div>
 
@@ -92,17 +92,20 @@ const Works = () => {
           className='mt-4 max-w-4xl space-y-6'
         >
           {/* Engineering Manifesto Callout */}
-          <div className='relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#915EFF]/30 via-tertiary to-black-100 p-[1px] shadow-card'>
-            <div className='bg-tertiary/90 backdrop-blur-md px-6 py-5 rounded-2xl border-l-4 border-[#915EFF] flex items-start gap-4'>
-              <span className='flex h-3 w-3 rounded-full bg-[#915EFF] animate-ping mt-1.5 flex-shrink-0' />
+          <div className='relative overflow-hidden rounded-2xl bg-gradient-to-r from-gold/30 via-tertiary to-black-100 p-[1px] shadow-card'>
+            <div className='bg-tertiary/90 backdrop-blur-md px-6 py-5 rounded-2xl border-l-4 border-gold flex items-start gap-4'>
+              <span className='relative flex h-5 w-5 mt-0.5 flex-shrink-0'>
+                <span className='absolute inset-1 rounded-full bg-gold animate-ping' />
+                <span className='relative m-auto h-2 w-2 rounded-full bg-gold' />
+              </span>
               <div className='space-y-1'>
                 <p className='text-[16px] sm:text-[18px] text-white font-bold leading-snug tracking-tight'>
                   <span className='text-secondary font-normal'>Claims are easy. </span>
-                  <span className='text-white underline decoration-[#915EFF] decoration-2 underline-offset-4'>
+                  <span className='text-white underline decoration-gold decoration-2 underline-offset-4'>
                     Working systems are the proof
                   </span>
-                  <span className='text-[#915EFF] font-bold mx-1.5'>—</span>
-                  <span className='text-[#dfd9ff] font-medium'>
+                  <span className='text-gold font-bold mx-1.5'>—</span>
+                  <span className='text-[#f2dfbd] font-medium'>
                     and while technologies evolve, good engineering never goes out of date.
                   </span>
                 </p>
@@ -140,14 +143,14 @@ const Works = () => {
       {/* ── Project Transition ── */}
       <div className='mt-16 mb-10 flex items-center gap-5'>
         {/* Left line — thicker, fades right to purple */}
-        <div className='flex-1 h-[2px] rounded-full bg-gradient-to-r from-transparent via-[#915EFF]/40 to-[#915EFF]/70' />
+        <div className='flex-1 h-[2px] rounded-full bg-gradient-to-r from-transparent via-gold/40 to-gold/70' />
 
         <p className='flex-shrink-0 text-[13.5px] sm:text-[14.5px] font-medium italic text-white/60 tracking-wide text-center'>
           Let's start where the engineering gets interesting.
         </p>
 
         {/* Right line — fades left to purple */}
-        <div className='flex-1 h-[2px] rounded-full bg-gradient-to-l from-transparent via-[#915EFF]/40 to-[#915EFF]/70' />
+        <div className='flex-1 h-[2px] rounded-full bg-gradient-to-l from-transparent via-gold/40 to-gold/70' />
       </div>
 
       {/* ── Flagship Project ── */}
@@ -160,7 +163,7 @@ const Works = () => {
         {/* Section divider header */}
         <div className='flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-5 border-b border-white/[0.08]'>
           <div className='space-y-1.5'>
-            <p className='text-xs font-mono font-bold text-[#915EFF] uppercase tracking-widest'>
+            <p className='text-xs font-mono font-bold text-gold uppercase tracking-widest'>
               The Rest of the Work
             </p>
             <h3 className='text-white font-bold text-xl sm:text-2xl leading-tight'>
@@ -186,4 +189,4 @@ const Works = () => {
   );
 };
 
-export default SectionWrapper(Works, "");
+export default SectionWrapper(Works, "projects");

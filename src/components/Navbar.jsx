@@ -45,7 +45,9 @@ const Navbar = () => {
             window.scrollTo(0, 0);
           }}
         >
-          <img src={logo} alt='Yash Logo' width='36' height='36' className='w-9 h-9 object-contain' />
+          <span className='relative flex h-10 w-10 items-center justify-center rounded-full border border-gold/50 bg-gold/10 shadow-[0_0_18px_rgba(214,168,75,0.14)]'>
+            <img src={logo} alt='Yash Logo' width='36' height='36' className='w-8 h-8 object-contain' />
+          </span>
           <p className='text-white text-[18px] font-bold cursor-pointer flex '>
             <span className='sm:block hidden'>Engineering What’s Next</span>
           </p>
@@ -55,8 +57,8 @@ const Navbar = () => {
           {navLinks.map((nav) => (
             <li
               key={nav.id}
-              className={`${active === nav.title ? "text-white" : "text-secondary"
-                } hover:text-white text-[18px] font-medium cursor-pointer transition-colors`}
+              className={`${active === nav.title ? "text-gold-light" : "text-secondary"
+                } hover:text-gold-light text-[18px] font-medium cursor-pointer transition-colors relative after:absolute after:-bottom-2 after:left-0 after:h-px after:w-full after:origin-left after:bg-gold after:scale-x-0 hover:after:scale-x-100 after:transition-transform`}
               onClick={() => setActive(nav.title)}
             >
               <a href={`#${nav.id}`}>{nav.title}</a>

@@ -93,7 +93,7 @@ const Contact = () => {
               onChange={handleChange}
               placeholder="What's your good name?"
               required
-              className='bg-tertiary py-4 px-6 placeholder:text-secondary text-white rounded-lg outline-none border-none font-medium'
+              className='bg-tertiary py-4 px-6 placeholder:text-secondary text-white rounded-lg outline-none border border-transparent focus:border-gold/70 focus:ring-2 focus:ring-gold/15 font-medium transition-colors'
             />
           </label>
           <label className='flex flex-col'>
@@ -105,7 +105,7 @@ const Contact = () => {
               onChange={handleChange}
               placeholder="What's your web address?"
               required
-              className='bg-tertiary py-4 px-6 placeholder:text-secondary text-white rounded-lg outline-none border-none font-medium'
+              className='bg-tertiary py-4 px-6 placeholder:text-secondary text-white rounded-lg outline-none border border-transparent focus:border-gold/70 focus:ring-2 focus:ring-gold/15 font-medium transition-colors'
             />
           </label>
           <label className='flex flex-col'>
@@ -117,7 +117,7 @@ const Contact = () => {
               onChange={handleChange}
               placeholder='Tell me about the role, technical challenge, or idea you have in mind...'
               required
-              className='bg-tertiary py-4 px-6 placeholder:text-secondary text-white rounded-lg outline-none border-none font-medium'
+              className='bg-tertiary py-4 px-6 placeholder:text-secondary text-white rounded-lg outline-none border border-transparent focus:border-gold/70 focus:ring-2 focus:ring-gold/15 font-medium transition-colors'
             />
           </label>
 
@@ -138,9 +138,9 @@ const Contact = () => {
           <button
             type='submit'
             disabled={loading}
-            className='bg-tertiary py-3 px-8 rounded-xl outline-none w-fit text-white font-bold shadow-md shadow-primary disabled:opacity-60 disabled:cursor-not-allowed transition-opacity'
+            className='group bg-gradient-to-r from-gold to-[#b9792e] py-3 px-8 rounded-xl outline-none w-fit text-[#17130e] font-bold shadow-md shadow-gold/25 disabled:opacity-60 disabled:cursor-not-allowed transition-all hover:shadow-gold/40 active:scale-95'
           >
-            {loading ? "Sending..." : "Send"}
+            {loading ? "Sending..." : "Send message"}
           </button>
         </form>
       </motion.div>
