@@ -95,7 +95,7 @@ const About = () => {
         {/* Proof of Product Thinking & Achievement */}
         <motion.div
           variants={fadeIn("up", "spring", 0.3, 0.75)}
-          className='mt-10 bg-black-100 border border-[#915EFF]/30 rounded-2xl p-6 sm:p-8 flex flex-col lg:flex-row items-center gap-8 shadow-card'
+          className='mt-10 bg-black-100 border border-gold/30 rounded-2xl p-6 sm:p-8 flex flex-col lg:flex-row items-center gap-8 shadow-card'
         >
           {/* Zoomable Case Study Image */}
           <div
@@ -112,7 +112,7 @@ const About = () => {
               className='w-full h-[240px] sm:h-[300px] object-cover transition-transform duration-500 group-hover:scale-105'
             />
             <div className='absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2 text-white font-medium text-sm backdrop-blur-[2px]'>
-              <span className='bg-[#915EFF] px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-lg'>
+              <span className='bg-gold px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-lg text-[#17130e]'>
                 🔍 View Image
               </span>
             </div>
@@ -121,10 +121,10 @@ const About = () => {
           {/* Achievement Content */}
           <div className='flex-1 flex flex-col justify-center'>
             <div className='flex flex-wrap items-center gap-2 mb-3'>
-              <span className='bg-[#915EFF]/20 border border-[#915EFF] text-white font-bold px-3 py-1 rounded-full text-xs'>
+              <span className='bg-gold/20 border border-gold text-gold-light font-bold px-3 py-1 rounded-full text-xs'>
                 🏆 1st Prize Winner
               </span>
-              <span className='bg-tertiary border border-white/15 text-[#dfd9ff] font-semibold px-3 py-1 rounded-full text-xs'>
+              <span className='bg-tertiary border border-white/15 text-[#f2dfbd] font-semibold px-3 py-1 rounded-full text-xs'>
                 80+ Competing Teams
               </span>
             </div>
@@ -136,28 +136,28 @@ const About = () => {
             {/* Bullet Points */}
             <ul className='mt-4 space-y-3 text-secondary text-[14px] sm:text-[15px] leading-relaxed'>
               <li className='flex items-start gap-2.5'>
-                <span className='text-[#915EFF] font-bold mt-1 text-base'>•</span>
+                <span className='text-gold font-bold mt-1 text-base'>•</span>
                 <span>
-                  <strong className='text-white font-semibold'>Led Customer Discovery & Solution Design</strong> for <strong className='text-[#915EFF] font-semibold'>HawkersCart</strong>, a hyperlocal marketplace connecting street vegetable vendors directly with nearby households.
+                  <strong className='text-white font-semibold'>Led Customer Discovery & Solution Design</strong> for <strong className='text-gold-light font-semibold'>HawkersCart</strong>, a hyperlocal marketplace connecting street vegetable vendors directly with nearby households.
                 </span>
               </li>
 
               <li className='flex items-start gap-2.5'>
-                <span className='text-[#915EFF] font-bold mt-1 text-base'>•</span>
+                <span className='text-gold font-bold mt-1 text-base'>•</span>
                 <span>
                   <strong className='text-white font-semibold'>Identified Adoption Barriers</strong> across both user groups, translating real-world constraints into clear <strong className='text-white font-semibold'>Product and Technical Requirements</strong>.
                 </span>
               </li>
 
               <li className='flex items-start gap-2.5'>
-                <span className='text-[#915EFF] font-bold mt-1 text-base'>•</span>
+                <span className='text-gold font-bold mt-1 text-base'>•</span>
                 <span>
                   <strong className='text-white font-semibold'>Designed an End-to-End Solution</strong> combining <strong className='text-white font-semibold'>Location-Based Vendor Discovery</strong>, <strong className='text-white font-semibold'>Subscription Delivery</strong>.
                 </span>
               </li>
 
               <li className='flex items-start gap-2.5'>
-                <span className='text-[#915EFF] font-bold mt-1 text-base'>•</span>
+                <span className='text-gold font-bold mt-1 text-base'>•</span>
                 <span>
                   <strong className='text-white font-semibold'>Bridged Product & Business Strategy</strong> with practical implementation, leveraging <strong className='text-white font-semibold'>Product Thinking</strong> and <strong className='text-white font-semibold'>Technical Communication</strong> to pitch the winning solution.
                 </span>
@@ -176,7 +176,7 @@ const About = () => {
               ].map((tag) => (
                 <span
                   key={tag}
-                  className='text-xs px-3 py-1.5 rounded-md bg-tertiary border border-[#915EFF]/25 text-[#dfd9ff] font-medium hover:border-[#915EFF] transition-colors'
+                  className='text-xs px-3 py-1.5 rounded-md bg-tertiary border border-gold/25 text-[#f2dfbd] font-medium hover:border-gold transition-colors'
                 >
                   #{tag}
                 </span>
@@ -206,7 +206,7 @@ const About = () => {
             >
               <button
                 onClick={() => setIsZoomed(false)}
-                className='absolute top-4 right-4 z-10 bg-black/70 hover:bg-[#915EFF] text-white w-9 h-9 rounded-full flex items-center justify-center transition-colors text-lg font-bold'
+                className='absolute top-4 right-4 z-10 bg-black/70 hover:bg-gold text-white hover:text-[#17130e] w-9 h-9 rounded-full flex items-center justify-center transition-colors text-lg font-bold'
                 aria-label='Close preview'
               >
                 ✕
