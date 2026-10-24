@@ -1,13 +1,72 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Html } from "@react-three/drei";
+import { Html, PerformanceMonitor } from "@react-three/drei";
 import * as THREE from "three";
 
 import { styles } from "../styles";
 
 /* -------------------------------------------------------------------------- */
-/*  Headlines (unchanged from your current Hero)                              */
+/*  Quality tier: strong machines keep the original look, weaker ones step    */
+/*  down counts/resolution. Resolution also adapts live (PerformanceMonitor). */
+/* -------------------------------------------------------------------------- */
+const COARSE =
+  typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
+
+const detectTier = () => {
+  if (typeof window === "undefined") return "mid";
+  const mem = navigator.deviceMemory ?? 8; // Safari has no deviceMemory -> assume capable
+  const cores = navigator.hardwareConcurrency ?? 8;
+  if (window.innerWidth < 720 || mem <= 4 || cores <= 4) return "low"; // every phone lands here
+  if (!COARSE && mem >= 8 && cores >= 8) return "high"; // tablets never get "high"
+  return "mid";
+};
+
+const Q = {
+  high: { dust: 940, bandW: 8192, rocks: 80, ringDust: 2600, dpr: 2, aniso: 16, seg: [96, 64], rays: 20, aa: true, power: "default" },
+  mid: { dust: 700, bandW: 4096, rocks: 60, ringDust: 1800, dpr: 1.75, aniso: 16, seg: [64, 48], rays: 16, aa: !COARSE, power: "default" },
+  low: { dust: 400, bandW: 3072, rocks: 40, ringDust: 1000, dpr: 1.75, aniso: 8, seg: [48, 32], rays: 10, aa: false, power: "low-power" },
+}[detectTier()];
+
+// Portrait screens (phones, tablets held upright) get the compact layout.
+const isCompact = (size) => size.width < 720 || size.width / size.height < 1;
+
+/* -------------------------------------------------------------------------- */
+/*  Helpers                                                                   */
+/* -------------------------------------------------------------------------- */
+const useInView = (ref, rootMargin = "120px") => {
+  const [inView, setInView] = useState(true);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !("IntersectionObserver" in window)) return undefined;
+    const io = new IntersectionObserver(([e]) => setInView(e.isIntersecting), { rootMargin });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [ref, rootMargin]);
+  return inView;
+};
+
+// One shared font gate so canvas textures are built once, after Poppins is ready.
+const fontsPromise =
+  typeof document !== "undefined" && document.fonts?.load
+    ? Promise.all([document.fonts.load("600 20px Poppins"), document.fonts.load("700 20px Poppins")]).catch(() => { })
+    : Promise.resolve();
+
+const useFontsReady = () => {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    fontsPromise.then(() => alive && setReady(true));
+    return () => { alive = false; };
+  }, []);
+  return ready;
+};
+
+const whenIdle = (fn) => ("requestIdleCallback" in window ? requestIdleCallback(fn, { timeout: 800 }) : setTimeout(fn, 60));
+const cancelIdle = (id) => ("cancelIdleCallback" in window ? cancelIdleCallback(id) : clearTimeout(id));
+
+/* -------------------------------------------------------------------------- */
+/*  Headlines                                                                 */
 /* -------------------------------------------------------------------------- */
 const headlines = [
   { lead: "Because if you have an AI idea, I turn it into a", prefix: "Reliable & Scalable", highlight: "Production-Ready System." },
@@ -20,7 +79,7 @@ const headlines = [
 /* -------------------------------------------------------------------------- */
 /*  Cosmic dust                                                               */
 /* -------------------------------------------------------------------------- */
-const DUST_COUNT = 940;
+const DUST_COUNT = Q.dust;
 const FIELD_DEPTH = 3.7;
 const DUST_DRIFT_SPEED = 0.4;
 const DUST_TARGET_ALPHA = 0.68;
@@ -28,6 +87,26 @@ const DUST_TARGET_ALPHA = 0.68;
 const hexToVec3 = (hex) => {
   const n = parseInt(hex.slice(1), 16);
   return new THREE.Vector3(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255);
+};
+
+// Additive glow that leaves the canvas alpha alone.
+const GLOW_BLEND = {
+  blending: THREE.CustomBlending,
+  blendEquation: THREE.AddEquation,
+  blendSrc: THREE.OneFactor,
+  blendDst: THREE.OneFactor,
+  blendSrcAlpha: THREE.ZeroFactor,
+  blendDstAlpha: THREE.OneFactor,
+};
+
+// Premultiplied additive light for the sun.
+const SUN_BLEND = {
+  blending: THREE.CustomBlending,
+  blendEquation: THREE.AddEquation,
+  blendSrc: THREE.OneFactor,
+  blendDst: THREE.OneFactor,
+  blendSrcAlpha: THREE.OneFactor,
+  blendDstAlpha: THREE.OneFactor,
 };
 
 const dustVertexShader = `
@@ -71,7 +150,7 @@ const CosmicDust = () => {
     };
     for (let i = 0; i < DUST_COUNT; i += 1) {
       positions.push(2 * random() - 1, 2 * random() - 1, 2 * random() - 1);
-      sizes.push(50 + 50 * random()); // doubled: camera is farther away now
+      sizes.push(50 + 50 * random());
     }
     const result = new THREE.BufferGeometry();
     result.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
@@ -79,15 +158,19 @@ const CosmicDust = () => {
     return result;
   }, []);
 
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
   const uniforms = useMemo(() => ({
     iTime: { value: 0 }, iShift: { value: shift }, iAlpha: { value: 0 }, iAnimation: { value: new THREE.Vector3() },
-    iResolution: { value: new THREE.Vector2(window.innerWidth * window.devicePixelRatio, window.innerHeight * window.devicePixelRatio) },
+    iResolution: { value: new THREE.Vector2(1, 1) },
     uDepth: { value: FIELD_DEPTH }, uCool: { value: hexToVec3("#b3401f") }, uWarm: { value: hexToVec3("#ffc46b") },
   }), [shift]);
 
+  // Pixel height in device pixels; re-run when the canvas size or the adaptive dpr changes.
+  const dpr = useThree((s) => s.viewport.dpr);
   useEffect(() => {
-    uniforms.iResolution.value.set(size.width * (window.devicePixelRatio || 1), size.height * (window.devicePixelRatio || 1));
-  }, [size, uniforms]);
+    uniforms.iResolution.value.set(size.width * dpr, size.height * dpr);
+  }, [size, dpr, uniforms]);
 
   useFrame(({ clock }) => {
     const elapsed = clock.getElapsedTime();
@@ -122,8 +205,6 @@ const polygon = (c, cx, cy, r, sides, rot = -Math.PI / 2) => {
   c.closePath();
 };
 
-// Logos are drawn on a canvas so nothing external has to load (no CORS, no extra files).
-// Each moon swaps to a different badge every time it circles round behind the planet.
 const BADGES = [
   {
     name: "React", title: "Component-Driven UI", text: "Composable interfaces with predictable state and fast rendering.", viz: "flow", color: "#61dafb", url: "https://react.dev", draw: (c) => {
@@ -253,18 +334,11 @@ const TECH_NODES = [
   { name: "Pulse", layer: 2, angle: 3.48, size: 0.2, badge: 6 },
 ];
 
+// Built once, after Poppins is ready (previously built twice).
 const useBadgeTextures = () => {
-  const [fontReady, setFontReady] = useState(false);
+  const fontReady = useFontsReady();
 
-  useEffect(() => {
-    let alive = true;
-    const done = () => alive && setFontReady(true);
-    if (document.fonts?.load) document.fonts.load("700 20px Poppins").then(done, done);
-    else done();
-    return () => { alive = false; };
-  }, []);
-
-  const textures = useMemo(() => BADGES.map((badge) => {
+  const textures = useMemo(() => (!fontReady ? [] : BADGES.map((badge) => {
     const canvas = document.createElement("canvas");
     canvas.width = BADGE_SIZE;
     canvas.height = BADGE_SIZE;
@@ -276,17 +350,16 @@ const useBadgeTextures = () => {
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.anisotropy = 4;
     return texture;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [fontReady]);
+  })), [fontReady]);
 
   useEffect(() => () => textures.forEach((t) => t.dispose()), [textures]);
   return textures;
 };
 
 /* ---------------------------- info cards ---------------------------------- */
-const INFO_FIRST_DELAY = 4000; // first card appears after 4s
-const INFO_DURATION = 6000;    // each card stays for 6s, then closes by itself
-const INFO_GAP = 5000;         // pause before the next moon opens its card
+const INFO_FIRST_DELAY = 4000;
+const INFO_DURATION = 6000;
+const INFO_GAP = 5000;
 
 const MiniDiagram = ({ kind, color }) => {
   const line = { stroke: color, strokeWidth: 1.4, fill: "none", strokeOpacity: 0.9 };
@@ -332,10 +405,9 @@ const MiniDiagram = ({ kind, color }) => {
   return <svg viewBox="0 0 220 64" width="100%" height="56" style={{ display: "block" }}>{body}</svg>;
 };
 
-// Card + elbow leader line. The wrapper is 0x0 and sits exactly on the moon,
-// so everything below is positioned relative to the moon's centre.
-const InfoCard = ({ badge, side, shown, width }) => {
-  const edge = 64;
+// Card + elbow leader line. The wrapper is 0x0 and sits exactly on the moon.
+const InfoCard = ({ badge, side, shown, width, compact }) => {
+  const edge = compact ? 40 : 64;
   const attach = -86;
   return (
     <div style={{ position: "relative", width: 0, height: 0, fontFamily: "Poppins, Arial, sans-serif" }}>
@@ -353,7 +425,8 @@ const InfoCard = ({ badge, side, shown, width }) => {
           position: "absolute", bottom: edge, [side > 0 ? "left" : "right"]: edge, width,
           borderRadius: 10, overflow: "hidden", whiteSpace: "normal",
           border: `1px solid ${badge.color}88`,
-          background: "rgba(6,14,24,.78)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)",
+          background: compact ? "rgba(6,14,24,.9)" : "rgba(6,14,24,.78)",
+          ...(compact ? {} : { backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }),
           boxShadow: `0 0 26px ${badge.color}33, inset 0 0 18px ${badge.color}14`,
           opacity: shown ? 1 : 0,
           transform: shown ? "translateY(0) scale(1)" : "translateY(8px) scale(.96)",
@@ -373,10 +446,13 @@ const InfoCard = ({ badge, side, shown, width }) => {
   );
 };
 
-// A glass orb with the logo floating inside it, like the reference.
+const noRaycast = () => null;
+
+// A glass orb with the logo floating inside it.
 const TechNode = ({ node, badge, texture, info }) => {
   const { size } = useThree();
-  const cardWidth = size.width < 720 ? 192 : 236;
+  const compact = isCompact(size);
+  const cardWidth = info.width ?? (compact ? 188 : 236);
   const openLink = (event) => {
     event.stopPropagation();
     window.open(badge.url, "_blank", "noopener,noreferrer");
@@ -387,25 +463,31 @@ const TechNode = ({ node, badge, texture, info }) => {
       onPointerOver={() => { document.body.style.cursor = "pointer"; }}
       onPointerOut={() => { document.body.style.cursor = "auto"; }}
     >
-      <pointLight color={badge.color} intensity={0.8} distance={1} />
+      {/* per-moon pointLight removed: it sat at the sphere centre and lit no visible surface */}
       <mesh renderOrder={1}>
         <sphereGeometry args={[node.size, 32, 32]} />
         <meshPhysicalMaterial color="#0a1018" metalness={0.3} roughness={0.15} clearcoat={1} clearcoatRoughness={0.1} transparent opacity={0.78} depthWrite={false} emissive={badge.color} emissiveIntensity={0.18} />
       </mesh>
-      <sprite scale={[node.size * 1.55, node.size * 1.55, 1]} renderOrder={2}>
+      <sprite scale={[node.size * 1.55, node.size * 1.55, 1]} renderOrder={2} raycast={noRaycast}>
         <spriteMaterial map={texture} transparent depthWrite={false} toneMapped={false} />
       </sprite>
-      <mesh scale={1.13}>
+      <mesh scale={1.13} raycast={noRaycast}>
         <sphereGeometry args={[node.size, 20, 20]} />
         <meshBasicMaterial color={badge.color} transparent opacity={0.12} depthWrite={false} />
       </mesh>
-      <mesh rotation={[0.45, 0.1, -0.35]}>
+      <mesh rotation={[0.45, 0.1, -0.35]} raycast={noRaycast}>
         <torusGeometry args={[node.size * 1.5, 0.006, 6, 32]} />
         <meshBasicMaterial color={badge.color} transparent opacity={0.38} />
       </mesh>
+      {COARSE && (
+        <mesh>
+          <sphereGeometry args={[node.size * 1.7, 8, 8]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} colorWrite={false} />
+        </mesh>
+      )}
       {info.mounted && (
         <Html zIndexRange={[30, 10]} style={{ pointerEvents: "none" }}>
-          <InfoCard badge={badge} side={info.side} shown={info.shown} width={cardWidth} />
+          <InfoCard badge={badge} side={info.side} shown={info.shown} width={cardWidth} compact={compact} />
         </Html>
       )}
     </group>
@@ -443,23 +525,19 @@ const HASHTAGS = [
   "#DEVOPS", "#CYBERSECURITY", "#ZEROTRUST", "#UIDESIGN", "#LLM", "#AGENTS", "#KUBERNETES", "#SYSTEMDESIGN",
 ];
 
-// Tilt: negative => bottom of the ring in front of the planet.
-// Roll: positive => ring rises to the right (left side low, right side high).
 const RING_TILT = -1.25;
 const RING_ROLL = 0.37;
 const RING_ROTATION = [RING_TILT, 0, RING_ROLL, "ZXY"];
 
-const RING_INNER = 2.05; // planet radius is 1.55
+const RING_INNER = 2.05;
 const RING_OUTER = 4.7;
 
-// The three wide text lanes. The moons ride these.
 const RING_LAYERS = [
   { radius: 2.9, w: 0.3, rotation: RING_ROTATION, color: "#ffd784" },
   { radius: 3.55, w: 0.3, rotation: RING_ROTATION, color: "#f7d09a" },
   { radius: 4.2, w: 0.3, rotation: RING_ROTATION, color: "#ffb84d" },
 ];
 
-// Thin, dense data streaks between the wide lanes (the fine "text" texture in the reference).
 const DATA_LANES = [
   { radius: 2.38, w: 0.1, dense: true, speed: 0.7, color: "#ffe2a8" },
   { radius: 2.66, w: 0.1, dense: true, speed: 1.3, color: "#ffc46b" },
@@ -468,9 +546,8 @@ const DATA_LANES = [
   { radius: 4.5, w: 0.1, dense: true, speed: 0.8, color: "#ffe2a8" },
 ];
 
-const BAND_TEXTURE_WIDTH = 8192; // use 4096 for low-end mobile GPUs
+const BAND_TEXTURE_WIDTH = Q.bandW;
 
-// RingGeometry has planar UVs; remap to polar (u around the ring, v across the band).
 const createBandGeometry = (inner, outer, segments = 256) => {
   const geometry = new THREE.RingGeometry(inner, outer, segments, 1);
   const uv = geometry.attributes.uv;
@@ -483,14 +560,12 @@ const createBandGeometry = (inner, outer, segments = 256) => {
   return geometry;
 };
 
-/* ---- the ring body: many thin glowing bands, gaps, and streaky grain ------- */
 const smoothstep01 = (a, b, t) => {
   const x = Math.min(Math.max((t - a) / (b - a), 0), 1);
   return x * x * (3 - 2 * x);
 };
 const bandAt = (t, a, b, soft, k) => k * smoothstep01(a - soft, a + soft, t) * (1 - smoothstep01(b - soft, b + soft, t));
 
-// t = 0 inner edge, t = 1 outer edge. The gaps are at ~0.64-0.70 and ~0.86-0.885.
 const ringProfile = (t) =>
   bandAt(t, 0.02, 0.14, 0.03, 0.22) +
   bandAt(t, 0.16, 0.34, 0.03, 0.5) +
@@ -532,19 +607,17 @@ const buildRingDiscTexture = (anisotropy) => {
     return (seed - 1) / 2147483646;
   };
 
-  // fine concentric lines, like the reference's dozens of thin ringlets
   const lines = Array.from({ length: 140 }, () => ({
     c: rand(), w: 0.0008 + rand() * 0.0045, a: 0.35 + rand() * 0.65,
   }));
 
   for (let y = 0; y < H; y += 1) {
-    const t = y / (H - 1); // canvas top = inner edge (flipY maps it to v = 1)
+    const t = y / (H - 1);
     let fine = 0;
     for (const l of lines) fine += l.a * Math.exp(-(((t - l.c) / l.w) ** 2));
     fine = Math.min(fine, 1);
     const base = ringProfile(t) * (0.5 + 0.7 * fine) * (0.85 + 0.3 * rand());
     const [r, g, b] = ringColorAt(t);
-    // integer frequencies keep the streaks seamless where the texture wraps
     const f1 = 2 + Math.floor(rand() * 12);
     const f2 = 3 + Math.floor(rand() * 17);
     const p1 = rand() * Math.PI * 2;
@@ -557,7 +630,7 @@ const buildRingDiscTexture = (anisotropy) => {
       image.data[i] = Math.min(255, r * k);
       image.data[i + 1] = Math.min(255, g * k);
       image.data[i + 2] = Math.min(255, b * k);
-      image.data[i + 3] = 255; // intensity is baked into RGB; the material blends additively
+      image.data[i + 3] = 255;
     }
   }
   ctx.putImageData(image, 0, 0);
@@ -572,27 +645,25 @@ const buildRingDiscTexture = (anisotropy) => {
 const RingDisc = ({ phase }) => {
   const { gl } = useThree();
   const geometry = useMemo(() => createBandGeometry(RING_INNER, RING_OUTER, 384), []);
-  const texture = useMemo(() => buildRingDiscTexture(gl.capabilities.getMaxAnisotropy()), [gl]);
+  const texture = useMemo(() => buildRingDiscTexture(Math.min(Q.aniso, gl.capabilities.getMaxAnisotropy())), [gl]);
   useEffect(() => () => { texture.dispose(); geometry.dispose(); }, [texture, geometry]);
 
-  // the grain slides slowly around the ring so the bands shimmer
   useFrame(() => { texture.offset.x = (phase.current * 0.25) / (Math.PI * 2); });
 
   return (
     <>
-      {/* faint warm haze under the bands */}
       <mesh>
         <ringGeometry args={[RING_INNER - 0.1, RING_OUTER + 0.35, 128]} />
         <meshBasicMaterial color="#ff9a2e" transparent opacity={0.06} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
       </mesh>
       <mesh geometry={geometry}>
-        <meshBasicMaterial map={texture} transparent opacity={0.92} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} side={THREE.DoubleSide} />
+        <meshBasicMaterial map={texture} color="#ebebeb" transparent depthWrite={false} {...GLOW_BLEND} toneMapped={false} side={THREE.DoubleSide} />
       </mesh>
     </>
   );
 };
 
-/* ---- debris: dark rocks plus glittering dust drifting in the ring plane ---- */
+/* ---- debris ---------------------------------------------------------------- */
 const RingDebris = ({ phase }) => {
   const group = useRef();
   const rockMesh = useRef();
@@ -603,7 +674,7 @@ const RingDebris = ({ phase }) => {
       seed = (seed * 16807) % 2147483647;
       return (seed - 1) / 2147483646;
     };
-    return Array.from({ length: 80 }, () => {
+    return Array.from({ length: Q.rocks }, () => {
       const radius = RING_INNER + 0.1 + rand() * (RING_OUTER - RING_INNER);
       const angle = rand() * Math.PI * 2;
       return {
@@ -622,7 +693,7 @@ const RingDebris = ({ phase }) => {
       return (seed - 1) / 2147483646;
     };
     const positions = [];
-    for (let i = 0; i < 2600; i += 1) {
+    for (let i = 0; i < Q.ringDust; i += 1) {
       const t = Math.pow(rand(), 0.8);
       const radius = RING_INNER - 0.1 + t * (RING_OUTER - RING_INNER + 0.5);
       const angle = rand() * Math.PI * 2;
@@ -633,36 +704,41 @@ const RingDebris = ({ phase }) => {
     return geometry;
   }, []);
 
+  useEffect(() => () => dust.dispose(), [dust]);
+
   useEffect(() => {
     const matrix = new THREE.Matrix4();
     const quaternion = new THREE.Quaternion();
     const euler = new THREE.Euler();
+    const pos = new THREE.Vector3();
+    const scl = new THREE.Vector3();
     rocks.forEach((rock, i) => {
       euler.set(...rock.r);
       quaternion.setFromEuler(euler);
-      matrix.compose(new THREE.Vector3(...rock.p), quaternion, new THREE.Vector3(rock.s, rock.s * rock.sy, rock.s));
+      pos.set(...rock.p);
+      scl.set(rock.s, rock.s * rock.sy, rock.s);
+      matrix.compose(pos, quaternion, scl);
       rockMesh.current.setMatrixAt(i, matrix);
     });
     rockMesh.current.instanceMatrix.needsUpdate = true;
   }, [rocks]);
 
-  // debris drifts a little slower than the text lanes
   useFrame(() => { if (group.current) group.current.rotation.z = phase.current * 0.45; });
 
   return (
     <group ref={group}>
-      <instancedMesh ref={rockMesh} args={[null, null, rocks.length]}>
+      <instancedMesh ref={rockMesh} args={[null, null, rocks.length]} raycast={noRaycast}>
         <icosahedronGeometry args={[1, 0]} />
         <meshStandardMaterial color="#1b1410" roughness={0.95} metalness={0.1} emissive="#2a1a0a" emissiveIntensity={0.45} flatShading />
       </instancedMesh>
-      <points geometry={dust}>
+      <points geometry={dust} raycast={noRaycast}>
         <pointsMaterial color="#ffd9a0" size={0.075} sizeAttenuation transparent opacity={0.55} depthWrite={false} blending={THREE.AdditiveBlending} />
       </points>
     </group>
   );
 };
 
-/* ---- text lanes (wide ones carry the moons, thin ones are dense data) ------ */
+/* ---- text lanes ------------------------------------------------------------ */
 const buildRingTextTexture = ({ radius, bandWidth, color, seedOffset, anisotropy, dense }) => {
   const width = BAND_TEXTURE_WIDTH;
   const circumference = Math.PI * 2 * radius;
@@ -672,11 +748,16 @@ const buildRingTextTexture = ({ radius, bandWidth, color, seedOffset, anisotropy
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d");
-  const fontSize = Math.round(height * (dense ? 0.68 : 0.52));
+  const fontSize = Math.round(height * (dense ? 0.74 : 0.56));
   ctx.font = `600 ${fontSize}px Poppins, sans-serif`;
   ctx.textBaseline = "middle";
-  ctx.shadowColor = color;
-  ctx.shadowBlur = fontSize * (dense ? 0.25 : 0.4);
+  if ("letterSpacing" in ctx) ctx.letterSpacing = `${(fontSize * 0.04).toFixed(2)}px`;
+  if ("textRendering" in ctx) ctx.textRendering = "geometricPrecision";
+  ctx.fillStyle = color;
+  ctx.strokeStyle = color;
+  ctx.lineJoin = "round";
+  // a hair of stroke thickens thin strokes so they survive minification and mipmapping
+  ctx.lineWidth = Math.max(1, fontSize * 0.035);
 
   let seed = 9001 + seedOffset * 131;
   const rand = () => {
@@ -689,15 +770,33 @@ const buildRingTextTexture = ({ radius, bandWidth, color, seedOffset, anisotropy
     return dense ? word.toLowerCase() : word.toUpperCase();
   };
 
+  // Lay the words out once on whole pixels so both passes line up and glyph edges never straddle texels.
+  const tokens = [];
   let x = 0;
   while (x < width) {
     const token = pickToken();
-    ctx.globalAlpha = dense ? 0.62 : token.startsWith("#") ? 0.95 : 0.78;
-    ctx.fillStyle = color;
     const tokenWidth = ctx.measureText(token).width;
     if (x + tokenWidth > width) break; // leave a gap at the seam instead of cutting a word
-    ctx.fillText(token, x, height / 2);
+    tokens.push({ token, x: Math.round(x), alpha: dense ? 0.62 : token.startsWith("#") ? 0.95 : 0.78 });
     x += tokenWidth + fontSize * (dense ? 0.9 : 1.2);
+  }
+  const y = Math.round(height / 2);
+
+  // pass 1: the soft glow (original look)
+  ctx.shadowColor = color;
+  ctx.shadowBlur = fontSize * (dense ? 0.25 : 0.4);
+  for (const t of tokens) {
+    ctx.globalAlpha = t.alpha;
+    ctx.fillText(t.token, t.x, y);
+  }
+
+  // pass 2: a crisp, blur-free core on top, so the letters stay readable inside the glow
+  ctx.shadowBlur = 0;
+  ctx.shadowColor = "transparent";
+  for (const t of tokens) {
+    ctx.globalAlpha = Math.min(1, t.alpha + 0.25);
+    ctx.fillText(t.token, t.x, y);
+    ctx.strokeText(t.token, t.x, y);
   }
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -707,57 +806,67 @@ const buildRingTextTexture = ({ radius, bandWidth, color, seedOffset, anisotropy
   return texture;
 };
 
+// Texture is built once, staggered, in idle time, then fades in.
 const RingTextBand = ({ layer, index, phase }) => {
   const { gl } = useThree();
-  const [fontReady, setFontReady] = useState(false);
-
-  // The canvas is drawn once, so wait for Poppins before building the texture.
-  useEffect(() => {
-    let alive = true;
-    const done = () => alive && setFontReady(true);
-    if (document.fonts?.load) document.fonts.load("600 20px Poppins").then(done, done);
-    else done();
-    return () => { alive = false; };
-  }, []);
+  const ready = useFontsReady();
+  const [texture, setTexture] = useState(null);
+  const material = useRef();
 
   const geometry = useMemo(
     () => createBandGeometry(layer.radius - layer.w / 2, layer.radius + layer.w / 2),
     [layer.radius, layer.w]
   );
-  const texture = useMemo(
-    () => buildRingTextTexture({
-      radius: layer.radius,
-      bandWidth: layer.w,
-      color: layer.color,
-      seedOffset: index,
-      anisotropy: gl.capabilities.getMaxAnisotropy(),
-      dense: layer.dense,
-    }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [layer.radius, layer.w, layer.color, layer.dense, index, gl, fontReady]
-  );
 
-  useEffect(() => () => { texture.dispose(); geometry.dispose(); }, [texture, geometry]);
+  useEffect(() => {
+    if (!ready) return undefined;
+    let tex;
+    let idle;
+    const timer = setTimeout(() => {
+      idle = whenIdle(() => {
+        tex = buildRingTextTexture({
+          radius: layer.radius,
+          bandWidth: layer.w,
+          color: layer.color,
+          seedOffset: index,
+          anisotropy: Math.min(Q.aniso, gl.capabilities.getMaxAnisotropy()),
+          dense: layer.dense,
+        });
+        setTexture(tex);
+      });
+    }, index * 70);
+    return () => {
+      clearTimeout(timer);
+      if (idle !== undefined) cancelIdle(idle);
+      if (tex) tex.dispose();
+      setTexture(null);
+    };
+  }, [ready, layer.radius, layer.w, layer.color, layer.dense, index, gl]);
 
-  useFrame(() => {
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
+  useFrame((_, delta) => {
+    if (!texture) return;
     texture.offset.x = -(phase.current * (layer.speed || 1) + index * 0.17) / (Math.PI * 2);
+    const m = material.current;
+    if (m && m.opacity < 1) m.opacity = Math.min(1, m.opacity + Math.min(delta, 0.05) * 1.5);
   });
 
+  if (!texture) return null;
   return (
-    <mesh geometry={geometry}>
-      <meshBasicMaterial map={texture} transparent depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} side={THREE.DoubleSide} />
+    <mesh geometry={geometry} raycast={noRaycast}>
+      <meshBasicMaterial ref={material} map={texture} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} side={THREE.DoubleSide} />
     </mesh>
   );
 };
 
-// Thin rails along both edges of a wide text lane.
 const RingLayer = ({ layer, index, phase }) => (
   <group rotation={layer.rotation}>
-    <mesh>
+    <mesh raycast={noRaycast}>
       <torusGeometry args={[layer.radius - layer.w / 2, 0.004, 4, 240]} />
       <meshBasicMaterial color={layer.color} transparent opacity={0.45} depthWrite={false} blending={THREE.AdditiveBlending} />
     </mesh>
-    <mesh>
+    <mesh raycast={noRaycast}>
       <torusGeometry args={[layer.radius + layer.w / 2, 0.004, 4, 240]} />
       <meshBasicMaterial color={layer.color} transparent opacity={0.45} depthWrite={false} blending={THREE.AdditiveBlending} />
     </mesh>
@@ -766,6 +875,8 @@ const RingLayer = ({ layer, index, phase }) => (
 );
 
 const OrbitingTechNode = ({ node, phase, textures, claimBadge, reportRatio, turn, onInfoClosed }) => {
+  const { size, camera } = useThree();
+  const [cardW, setCardW] = useState(null);
   const outer = useRef();
   const orbit = useRef();
   const probe = useRef();
@@ -785,17 +896,27 @@ const OrbitingTechNode = ({ node, phase, textures, claimBadge, reportRatio, turn
     if (!openRef.current) return;
     openRef.current = false;
     clearTimeout(closeTimer.current);
-    setShown(false);                                        // fade + retract the line
-    hideTimer.current = setTimeout(() => setMounted(false), 500); // then unmount the DOM
+    setShown(false);
+    hideTimer.current = setTimeout(() => setMounted(false), 500);
     onInfoClosed();
   }, [onInfoClosed]);
 
-  // The scheduler picked this moon: open its card, close it again after INFO_DURATION.
   useEffect(() => {
     if (!turn || turn.name !== node.name || openRef.current || !probe.current || !outer.current) return;
     probe.current.getWorldPosition(v.p);
     outer.current.getWorldPosition(v.c);
-    setSide(v.p.x < v.c.x ? 1 : -1); // open toward the planet, away from the headline text
+    if (isCompact(size)) {
+      const ndc = v.p.clone().project(camera);
+      const px = (ndc.x * 0.5 + 0.5) * size.width;
+      const roomRight = size.width - px - 48;
+      const roomLeft = px - 48;
+      const right = roomRight >= roomLeft;
+      setSide(right ? 1 : -1);
+      setCardW(Math.round(Math.max(130, Math.min(188, right ? roomRight : roomLeft))));
+    } else {
+      setSide(v.p.x < v.c.x ? 1 : -1); // open toward the planet, away from the headline text
+      setCardW(null);
+    }
     openRef.current = true;
     clearTimeout(hideTimer.current);
     setMounted(true);
@@ -811,7 +932,7 @@ const OrbitingTechNode = ({ node, phase, textures, claimBadge, reportRatio, turn
     if (!probe.current || !outer.current) return;
 
     probe.current.getWorldPosition(v.p);
-    outer.current.getWorldPosition(v.c); // ring system origin == planet centre
+    outer.current.getWorldPosition(v.c);
     outer.current.getWorldScale(v.s);
 
     const scale = v.s.x;
@@ -820,10 +941,9 @@ const OrbitingTechNode = ({ node, phase, textures, claimBadge, reportRatio, turn
     const planetRadius = 1.55 * scale;
     const maxBack = layer.radius * Math.sin(Math.abs(RING_TILT)) * scale;
 
-    // 1 = nearest the camera, -1 = farthest behind the planet
     const ratio = dz / maxBack;
     reportRatio(node.name, ratio);
-    if (openRef.current && ratio < 0.1) closeCard(); // moon is heading round the back
+    if (openRef.current && ratio < 0.1) closeCard();
 
     if (dz > 0.3 * maxBack) armed.current = true;
     const hidden = dz < 0 && dist < planetRadius * 0.8;
@@ -841,7 +961,7 @@ const OrbitingTechNode = ({ node, phase, textures, claimBadge, reportRatio, turn
     <group ref={outer} rotation={layer.rotation}>
       <group ref={orbit}>
         <group ref={probe} position={[layer.radius, 0, 0]}>
-          <TechNode node={node} badge={BADGES[badgeId]} texture={textures[badgeId]} info={{ mounted, shown, side }} />
+          <TechNode node={node} badge={BADGES[badgeId]} texture={textures[badgeId]} info={{ mounted, shown, side, width: cardW }} />
         </group>
       </group>
     </group>
@@ -849,45 +969,48 @@ const OrbitingTechNode = ({ node, phase, textures, claimBadge, reportRatio, turn
 };
 
 /* -------------------------------------------------------------------------- */
-/*  Planet, flare, ring system                                                */
+/*  Neural Core constants (declared early; used by shaders and the rim)       */
 /* -------------------------------------------------------------------------- */
-const usePlanetTexture = () => useMemo(() => {
-  const canvas = document.createElement("canvas");
-  canvas.width = 1024;
-  canvas.height = 512;
-  const context = canvas.getContext("2d");
-  const base = context.createLinearGradient(0, 0, canvas.width, 0);
-  base.addColorStop(0, "#07090f");
-  base.addColorStop(0.32, "#20202c");
-  base.addColorStop(0.58, "#492426");
-  base.addColorStop(0.82, "#9a5834");
-  base.addColorStop(1, "#f4c17c");
-  context.fillStyle = base;
-  context.fillRect(0, 0, canvas.width, canvas.height);
-
-  let seed = 1977;
-  const random = () => {
-    seed = (seed * 48271) % 2147483647;
-    return (seed - 1) / 2147483646;
-  };
-  for (let band = 0; band < 54; band += 1) {
-    const y = random() * canvas.height;
-    const height = 2 + random() * 15;
-    context.fillStyle = random() > 0.56 ? "rgba(230,141,86,.12)" : "rgba(2,4,9,.18)";
-    context.fillRect(0, y, canvas.width, height);
-  }
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.wrapS = THREE.RepeatWrapping;
-  return texture;
-}, []);
+const CORE_RADIUS = 1.55;
 
 /* -------------------------------------------------------------------------- */
-/*  Sun: hot core, bloom, long rays, lit planet rim                           */
+/*  Sun: rises along the limb, holds, fades away, then rises again            */
 /* -------------------------------------------------------------------------- */
 const SUN_POSITION = [1.42, 0.52, 0.82];
-const SUN_SIZE = 7; // world units; the flare fades to nothing before the plane's edge
+const SUN_LIMB_RADIUS = Math.hypot(SUN_POSITION[0], SUN_POSITION[1]);
+const SUN_BASE_ANGLE = Math.atan2(SUN_POSITION[1], SUN_POSITION[0]);
+const SUN_SIZE = 9;
+const SUN_CYCLE = 16;
+
+const sunEnvelope = (seconds) => {
+  const p = (seconds % SUN_CYCLE) / SUN_CYCLE;
+  return smoothstep01(0.0, 0.26, p) * (1 - smoothstep01(0.58, 0.84, p));
+};
+
+// Ray parameters are generated once on the CPU instead of hashed per pixel on the GPU.
+const RAY_COUNT = Q.rays;
+const rayParams = (() => {
+  let s = 99173;
+  const rand = () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+  const A = [];
+  const B = [];
+  for (let i = 0; i < RAY_COUNT; i += 1) {
+    const dir = i % 2 === 0 ? 1 : -1;
+    A.push(new THREE.Vector4(
+      rand() * 6.28318,               // base angle
+      (0.015 + rand() * 0.045) * dir, // angular speed
+      0.3 + 0.7 * rand(),             // length
+      0.010 + 0.026 * rand(),         // width
+    ));
+    B.push(new THREE.Vector4(
+      0.8 + rand() * 1.4,             // length wobble frequency
+      i,                              // phase
+      1.3 + rand() * 2.2,             // flicker frequency
+      0.35 + 0.65 * rand(),           // amplitude
+    ));
+  }
+  return { A, B };
+})();
 
 const flareVertexShader = `
   varying vec2 vUv;
@@ -901,67 +1024,84 @@ const flareFragmentShader = `
   varying vec2 vUv;
   uniform float uTime;
   uniform float uIntensity;
-
-  float hash(float n) { return fract(sin(n * 12.9898) * 43758.5453); }
+  uniform float uReach;
+  uniform vec4 uRayA[${RAY_COUNT}];
+  uniform vec4 uRayB[${RAY_COUNT}];
 
   void main() {
     vec2 p = (vUv - 0.5) * 2.0;
     float r = length(p);
-    float a = atan(p.y, p.x);
+    if (r >= 1.0) discard; // outside the disc the result is multiplied by 0 anyway
+    float a = atan(p.y, p.x + 1e-5);
 
-    // white-hot core, orange bloom, wide warm haze
-    float core  = exp(-r * r * 1100.0) * 1.8;
-    float bloom = exp(-r * 9.0) * 0.85;
-    float haze  = exp(-r * 3.0) * 0.32;
+    float core  = exp(-r * r * 2600.0) * 1.9;
+    float glare = 0.0026 / (r * r + 0.0026) * (0.55 + 0.45 * uReach);
+    float bloom = exp(-r * 6.5) * 0.45;
+    float haze  = exp(-r * 2.4) * 0.22;
 
-    // long thin rays that slowly turn and flicker, each with its own length and width
     float rays = 0.0;
-    for (int i = 0; i < 20; i++) {
-      float fi = float(i);
-      float dir = (mod(fi, 2.0) < 1.0) ? 1.0 : -1.0;
-      float ang = hash(fi + 1.0) * 6.28318 + uTime * (0.015 + hash(fi + 7.0) * 0.045) * dir;
-      float d = abs(mod(a - ang + 3.14159, 6.28318) - 3.14159);
-      float len = 0.3 + 0.7 * hash(fi + 13.0);
-      len *= 0.9 + 0.1 * sin(uTime * (0.8 + hash(fi + 3.0) * 1.4) + fi);   // rays breathe in length
-      float width = 0.010 + 0.026 * hash(fi + 21.0);
-      float flick = 0.72 + 0.28 * sin(uTime * (1.3 + hash(fi + 5.0) * 2.2) + fi * 1.7);
-      rays += exp(-(d * d) / (width * width)) * smoothstep(len, 0.0, r) * flick * (0.35 + 0.65 * hash(fi + 31.0));
+    if (r < uReach) { // no ray is longer than uReach
+      for (int i = 0; i < ${RAY_COUNT}; i++) {
+        vec4 A = uRayA[i];
+        vec4 B = uRayB[i];
+        float d = abs(mod(a - (A.x + uTime * A.y) + 3.14159, 6.28318) - 3.14159);
+        if (d > A.w * 4.0) continue; // exp(-16) ~ 0, skip the expensive part
+        float len = A.z * uReach * (0.9 + 0.1 * sin(uTime * B.x + B.y));
+        float flick = 0.72 + 0.28 * sin(uTime * B.z + B.y * 1.7);
+        rays += exp(-(d * d) / (A.w * A.w)) * (1.0 - smoothstep(0.0, max(len, 0.01), r)) * flick * B.w;
+      }
+      rays *= exp(-r * 1.6);
     }
-    rays *= exp(-r * 1.6);
 
-    // faint horizontal lens streak
-    float streak = exp(-abs(p.y) * 55.0) * exp(-abs(p.x) * 2.4) * 0.22;
+    float ringD = r - 0.3;
+    float halo = exp(-ringD * ringD * 420.0) * 0.1 * uReach;
+    float streak = exp(-abs(p.y) * 55.0) * exp(-abs(p.x) * 2.4) * 0.2;
 
-    vec3 col = vec3(1.0, 0.95, 0.78) * core
-             + vec3(1.0, 0.74, 0.28) * (bloom + rays * 0.95 + streak)
-             + vec3(1.0, 0.46, 0.10) * haze;
+    vec3 hot  = vec3(1.0, 0.96, 0.82);
+    vec3 warm = vec3(1.0, 0.74, 0.30);
+    vec3 deep = vec3(1.0, 0.42, 0.10);
 
-    float edge = smoothstep(1.0, 0.72, r);
-    gl_FragColor = vec4(col * uIntensity * edge, 1.0);
+    vec3 col = hot * core
+             + mix(warm, hot, clamp(glare * 1.4, 0.0, 1.0)) * glare
+             + warm * (bloom + rays * 0.95 + streak)
+             + deep * haze
+             + vec3(1.0, 0.8, 0.5) * halo;
+
+    col *= uIntensity * (1.0 - smoothstep(0.7, 1.0, r));
+    gl_FragColor = vec4(col, clamp(max(col.r, max(col.g, col.b)), 0.0, 1.0));
   }
 `;
 
-const SolarFlare = () => {
+const SolarFlare = ({ sun }) => {
   const group = useRef();
   const mesh = useRef();
   const light = useRef();
-  const uniforms = useMemo(() => ({ uTime: { value: 0 }, uIntensity: { value: 1 } }), []);
+  const reduceMotion = useMemo(
+    () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches,
+    []
+  );
+  const uniforms = useMemo(() => ({
+    uTime: { value: 0 }, uIntensity: { value: 1 }, uReach: { value: 1 },
+    uRayA: { value: rayParams.A }, uRayB: { value: rayParams.B },
+  }), []);
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
-    const pulse = 1 + 0.08 * Math.sin(t * 1.7) + 0.05 * Math.sin(t * 4.3 + 1.2);
+    const env = reduceMotion ? 1 : sunEnvelope(t);
+    const progress = (t % SUN_CYCLE) / SUN_CYCLE;
+    const theta = reduceMotion ? SUN_BASE_ANGLE : 0.1 + 0.52 * progress;
+    const pulse = 1 + 0.06 * Math.sin(t * 1.7) + 0.04 * Math.sin(t * 4.3 + 1.2);
+
+    sun.current.env = env;
+    sun.current.pos.set(Math.cos(theta) * SUN_LIMB_RADIUS, Math.sin(theta) * SUN_LIMB_RADIUS, SUN_POSITION[2]);
+
     uniforms.uTime.value = t;
-    uniforms.uIntensity.value = pulse;
-    if (light.current) light.current.intensity = 18 * pulse;
-    if (group.current) {
-      // the sun creeps a little along the planet's limb
-      group.current.position.set(
-        SUN_POSITION[0] + Math.sin(t * 0.21) * 0.07,
-        SUN_POSITION[1] + Math.cos(t * 0.17) * 0.05,
-        SUN_POSITION[2]
-      );
-    }
+    uniforms.uIntensity.value = env * pulse;
+    uniforms.uReach.value = 0.45 + 0.55 * env;
+    if (light.current) light.current.intensity = 18 * env * pulse;
+    if (group.current) group.current.position.copy(sun.current.pos);
     if (mesh.current) {
+      mesh.current.visible = env > 0.003; // skip the full-screen quad while the sun is dark
       const breathe = 1 + 0.03 * Math.sin(t * 0.9);
       mesh.current.scale.set(breathe, breathe, 1);
     }
@@ -970,15 +1110,14 @@ const SolarFlare = () => {
   return (
     <group ref={group} position={SUN_POSITION}>
       <pointLight ref={light} intensity={18} distance={7} color="#ffc466" />
-      {/* counter-rotate the planet's tilt so the flare plane faces the camera */}
       <group rotation={[-0.04, 0, 0]}>
-        <mesh ref={mesh} renderOrder={10}>
+        <mesh ref={mesh} renderOrder={10} raycast={noRaycast}>
           <planeGeometry args={[SUN_SIZE, SUN_SIZE]} />
           <shaderMaterial
             transparent
             depthTest={false}
             depthWrite={false}
-            blending={THREE.AdditiveBlending}
+            {...SUN_BLEND}
             uniforms={uniforms}
             vertexShader={flareVertexShader}
             fragmentShader={flareFragmentShader}
@@ -989,7 +1128,6 @@ const SolarFlare = () => {
   );
 };
 
-// Thin golden rim along the planet's limb, strongest on the side facing the sun.
 const rimVertexShader = `
   varying vec3 vN;
   varying vec3 vV;
@@ -1010,37 +1148,193 @@ const rimFragmentShader = `
     vec3 n = normalize(vN);
     float fres = pow(1.0 - max(dot(n, normalize(vV)), 0.0), 3.0);
     float lit = smoothstep(-0.1, 0.85, dot(n, normalize(uSun)));
-    vec3 col = mix(vec3(1.0, 0.5, 0.15), vec3(1.0, 0.92, 0.62), lit);
-    gl_FragColor = vec4(col * fres * (0.1 + 1.5 * lit) * uPulse, 1.0);
+    vec3 tint = mix(vec3(1.0, 0.5, 0.15), vec3(1.0, 0.92, 0.62), lit);
+    vec3 col = tint * fres * (0.1 + 1.5 * lit) * uPulse;
+    gl_FragColor = vec4(col, clamp(max(col.r, max(col.g, col.b)), 0.0, 1.0));
   }
 `;
 
-const PlanetRim = () => {
+const PlanetRim = ({ sun }) => {
   const mesh = useRef();
   const camera = useThree((state) => state.camera);
   const uniforms = useMemo(() => ({ uSun: { value: new THREE.Vector3(1, 0.4, 0.6) }, uPulse: { value: 1 } }), []);
-  const sunDir = useMemo(() => new THREE.Vector3(...SUN_POSITION).normalize(), []);
+  const dir = useMemo(() => new THREE.Vector3(), []);
 
   useFrame(({ clock }) => {
     if (!mesh.current) return;
-    // sun direction into view space, to match the view-space normals in the shader
-    uniforms.uSun.value.copy(sunDir).transformDirection(mesh.current.matrixWorld).transformDirection(camera.matrixWorldInverse);
+    dir.copy(sun.current.pos).normalize();
+    uniforms.uSun.value.copy(dir).transformDirection(mesh.current.matrixWorld).transformDirection(camera.matrixWorldInverse);
     const t = clock.getElapsedTime();
-    uniforms.uPulse.value = 1 + 0.08 * Math.sin(t * 1.7) + 0.05 * Math.sin(t * 4.3 + 1.2);
+    const pulse = 1 + 0.06 * Math.sin(t * 1.7) + 0.04 * Math.sin(t * 4.3 + 1.2);
+    uniforms.uPulse.value = (0.25 + 0.75 * sun.current.env) * pulse;
   });
 
   return (
-    <mesh ref={mesh} scale={1.014}>
-      <sphereGeometry args={[1.55, 96, 64]} />
-      <shaderMaterial
-        transparent
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-        uniforms={uniforms}
-        vertexShader={rimVertexShader}
-        fragmentShader={rimFragmentShader}
-      />
+    <mesh ref={mesh} scale={1.014} raycast={noRaycast}>
+      <sphereGeometry args={[CORE_RADIUS, ...Q.seg]} />
+      <shaderMaterial transparent depthWrite={false} {...SUN_BLEND} uniforms={uniforms} vertexShader={rimVertexShader} fragmentShader={rimFragmentShader} />
     </mesh>
+  );
+};
+
+/* -------------------------------------------------------------------------- */
+/*  Neural Core                                                               */
+/* -------------------------------------------------------------------------- */
+const latticeVertexShader = `
+  attribute float aT;
+  attribute float aSeed;
+  uniform vec3 uSun;
+  varying float vT;
+  varying float vSeed;
+  varying float vY;
+  varying float vLit;
+  void main() {
+    vec3 wn = normalize((modelMatrix * vec4(position, 0.0)).xyz);
+    vLit = smoothstep(-0.3, 0.9, dot(wn, normalize(uSun)));
+    vT = aT;
+    vSeed = aSeed;
+    vY = position.y / ${CORE_RADIUS.toFixed(2)};
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const latticeFragmentShader = `
+  uniform float uTime;
+  uniform float uScan;
+  uniform float uEnergy;
+  varying float vT;
+  varying float vSeed;
+  varying float vY;
+  varying float vLit;
+  void main() {
+    float head = fract(uTime * (0.18 + vSeed * 0.22) + vSeed * 7.0);
+    float packet = 1.0 - smoothstep(0.0, 0.2, abs(vT - head));
+    float sq = (vY - uScan) * 5.0;
+    float scan = exp(-sq * sq);
+    float alpha = 0.14 + 0.3 * vLit + packet * 0.95 * uEnergy + scan * 0.6;
+    float hot = clamp(packet * uEnergy + scan, 0.0, 1.0);
+    vec3 col = mix(vec3(1.0, 0.7, 0.28), vec3(1.0, 0.95, 0.78), hot);
+    gl_FragColor = vec4(col * alpha, 0.0);
+  }
+`;
+
+const nodeVertexShader = `
+  attribute float aSeed;
+  uniform float uTime;
+  uniform float uScale;
+  uniform float uSize;
+  uniform vec3 uSun;
+  varying float vGlow;
+  void main() {
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    vec3 wn = normalize((modelMatrix * vec4(position, 0.0)).xyz);
+    float lit = smoothstep(-0.3, 0.9, dot(wn, normalize(uSun)));
+    float tw = 0.55 + 0.45 * sin(uTime * (0.8 + aSeed * 1.6) + aSeed * 40.0);
+    vGlow = (0.35 + 0.65 * lit) * tw;
+    gl_PointSize = uSize * uScale / -mv.z * (0.7 + 0.5 * tw);
+    gl_Position = projectionMatrix * mv;
+  }
+`;
+
+const nodeFragmentShader = `
+  varying float vGlow;
+  void main() {
+    float d = length(gl_PointCoord - 0.5) * 2.0;
+    float a = smoothstep(1.0, 0.0, d);
+    a *= a;
+    gl_FragColor = vec4(vec3(1.0, 0.86, 0.5) * a * vGlow * 1.4, 0.0);
+  }
+`;
+
+const buildNeuralLattice = () => {
+  let seed = 4242;
+  const rand = () => {
+    seed = (seed * 16807) % 2147483647;
+    return (seed - 1) / 2147483646;
+  };
+
+  const ico = new THREE.IcosahedronGeometry(CORE_RADIUS * 1.012, 3);
+  const edges = new THREE.WireframeGeometry(ico);
+  const count = edges.attributes.position.count;
+  const aT = new Float32Array(count);
+  const aSeed = new Float32Array(count);
+  for (let i = 0; i < count; i += 2) {
+    const s = rand();
+    aT[i] = 0; aT[i + 1] = 1;
+    aSeed[i] = s; aSeed[i + 1] = s;
+  }
+  edges.setAttribute("aT", new THREE.BufferAttribute(aT, 1));
+  edges.setAttribute("aSeed", new THREE.BufferAttribute(aSeed, 1));
+
+  const seen = new Set();
+  const nodePositions = [];
+  const nodeSeeds = [];
+  const p = ico.attributes.position;
+  for (let i = 0; i < p.count; i += 1) {
+    const key = `${p.getX(i).toFixed(3)},${p.getY(i).toFixed(3)},${p.getZ(i).toFixed(3)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    nodePositions.push(p.getX(i), p.getY(i), p.getZ(i));
+    nodeSeeds.push(rand());
+  }
+  const nodes = new THREE.BufferGeometry();
+  nodes.setAttribute("position", new THREE.Float32BufferAttribute(nodePositions, 3));
+  nodes.setAttribute("aSeed", new THREE.Float32BufferAttribute(nodeSeeds, 1));
+
+  ico.dispose();
+  return { edges, nodes };
+};
+
+const NeuralCore = ({ sun }) => {
+  const wrapper = useRef();
+  const spin = useRef();
+  const { size, camera, gl } = useThree();
+  const { edges, nodes } = useMemo(buildNeuralLattice, []);
+  const sunWorld = useMemo(() => new THREE.Vector3(), []);
+
+  const latticeUniforms = useMemo(() => ({
+    uTime: { value: 0 }, uScan: { value: 0 }, uEnergy: { value: 1 }, uSun: { value: new THREE.Vector3(1, 0.4, 0.6) },
+  }), []);
+  const nodeUniforms = useMemo(() => ({
+    uTime: { value: 0 }, uScale: { value: 1000 }, uSize: { value: 0.11 }, uSun: latticeUniforms.uSun,
+  }), [latticeUniforms]);
+
+  useEffect(() => () => { edges.dispose(); nodes.dispose(); }, [edges, nodes]);
+
+  // world units -> pixels, so node dots keep a steady on-screen size (also tracks adaptive dpr)
+  const dpr = useThree((s) => s.viewport.dpr);
+  useEffect(() => {
+    const fov = THREE.MathUtils.degToRad(camera.fov);
+    nodeUniforms.uScale.value = (size.height * dpr) / (2 * Math.tan(fov / 2));
+  }, [size, camera, dpr, nodeUniforms]);
+
+  useFrame(({ clock }) => {
+    const t = clock.getElapsedTime();
+    if (spin.current) spin.current.rotation.y = t * 0.05;
+    if (wrapper.current) {
+      sunWorld.copy(sun.current.pos).normalize().transformDirection(wrapper.current.matrixWorld);
+      latticeUniforms.uSun.value.copy(sunWorld);
+    }
+    latticeUniforms.uTime.value = t;
+    latticeUniforms.uScan.value = Math.sin(t * 0.45) * 0.95;
+    nodeUniforms.uTime.value = t;
+  });
+
+  return (
+    <group ref={wrapper}>
+      <mesh raycast={noRaycast}>
+        <sphereGeometry args={[CORE_RADIUS, ...Q.seg]} />
+        <meshPhysicalMaterial color="#0b0d14" roughness={0.38} metalness={0.55} clearcoat={0.6} clearcoatRoughness={0.3} emissive="#1a0f05" emissiveIntensity={0.5} />
+      </mesh>
+      <group ref={spin} rotation={[0.2, 0, 0]}>
+        <lineSegments geometry={edges} raycast={noRaycast}>
+          <shaderMaterial transparent depthWrite={false} {...GLOW_BLEND} uniforms={latticeUniforms} vertexShader={latticeVertexShader} fragmentShader={latticeFragmentShader} />
+        </lineSegments>
+        <points geometry={nodes} raycast={noRaycast}>
+          <shaderMaterial transparent depthWrite={false} {...GLOW_BLEND} uniforms={nodeUniforms} vertexShader={nodeVertexShader} fragmentShader={nodeFragmentShader} />
+        </points>
+      </group>
+    </group>
   );
 };
 
@@ -1050,7 +1344,6 @@ const RotatableRingSystem = () => {
   const badgeTextures = useBadgeTextures();
   const shownBadges = useRef(new Set(TECH_NODES.map((n) => n.badge)));
 
-  // Info-card scheduler: every few seconds one moon that is on the front of the ring opens its card.
   const moonRatios = useRef({});
   const lastInfoMoon = useRef(null);
   const infoTimer = useRef();
@@ -1079,7 +1372,6 @@ const RotatableRingSystem = () => {
     return () => clearTimeout(infoTimer.current);
   }, [scheduleNext]);
 
-  // Hands a moon a new badge that no other moon is currently showing.
   const claimBadge = useCallback((current) => {
     const free = BADGES.map((_, i) => i).filter((i) => !shownBadges.current.has(i));
     const next = free[Math.floor(Math.random() * free.length)];
@@ -1090,11 +1382,13 @@ const RotatableRingSystem = () => {
 
   useFrame((_, delta) => {
     if (drag.current.active) return;
-    phase.current += 0.1 * delta + drag.current.velocity * delta * 8;
-    drag.current.velocity = THREE.MathUtils.damp(drag.current.velocity, 0, 5, delta);
+    const d = Math.min(delta, 0.05); // never let a long frame make the ring jump
+    phase.current += 0.1 * d + drag.current.velocity * d * 8;
+    drag.current.velocity = THREE.MathUtils.damp(drag.current.velocity, 0, 5, d);
   });
 
   const startDrag = (event) => {
+    try { event.target.setPointerCapture?.(event.pointerId); } catch { /* ignore */ }
     drag.current.active = true;
     drag.current.previousX = event.clientX;
     drag.current.velocity = 0;
@@ -1114,11 +1408,10 @@ const RotatableRingSystem = () => {
 
   return (
     <group position={[0, 0, 0]}>
-      <mesh position={[0, 0, -1.85]} onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerOut={endDrag}>
+      <mesh position={[0, 0, -1.85]} onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag} onPointerOut={endDrag}>
         <circleGeometry args={[5.0, 64]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
-      {/* ring body, debris and fine data lanes share one tilted plane */}
       <group rotation={RING_ROTATION}>
         <RingDisc phase={phase} />
         <RingDebris phase={phase} />
@@ -1127,63 +1420,139 @@ const RotatableRingSystem = () => {
       {RING_LAYERS.map((layer, index) => (
         <RingLayer key={layer.radius} layer={layer} index={index} phase={phase} />
       ))}
-      {TECH_NODES.map((node) => <OrbitingTechNode key={node.name} node={node} phase={phase} textures={badgeTextures} claimBadge={claimBadge} reportRatio={reportRatio} turn={turn} onInfoClosed={onInfoClosed} />)}
+      {badgeTextures.length > 0 && TECH_NODES.map((node) => (
+        <OrbitingTechNode key={node.name} node={node} phase={phase} textures={badgeTextures} claimBadge={claimBadge} reportRatio={reportRatio} turn={turn} onInfoClosed={onInfoClosed} />
+      ))}
     </group>
   );
 };
 
 const DeveloperCore = () => {
-  const { size } = useThree();
-  const mobile = size.width < 720;
-  const planetTexture = usePlanetTexture();
-  const scale = mobile ? 0.5 : 1.05;
-  const position = mobile ? [0, -1.6, 0] : [1.2, -0.25, 0];
+  const { size, viewport } = useThree();
+  const sun = useRef({ pos: new THREE.Vector3(...SUN_POSITION), env: 1 });
+  const keyLight = useRef();
+  let scale;
+  let position;
+  if (isCompact(size)) {
+    // portrait: planet sized to the screen width, parked in the lower half under the headline
+    scale = THREE.MathUtils.clamp(viewport.width * 0.2, 0.4, 0.8);
+    position = [0, -viewport.height * 0.2, 0];
+  } else {
+    // landscape: original layout, eased down on narrow windows (x == 1280px and up is unchanged)
+    const k = THREE.MathUtils.clamp(size.width / 1280, 0.72, 1);
+    scale = 1.05 * k;
+    position = [1.2 * k, -0.25, 0];
+  }
+
+  useFrame(() => { if (keyLight.current) keyLight.current.intensity = 9 + 13 * sun.current.env; });
 
   return (
     <group position={position} scale={scale} rotation={[0.04, 0, 0]}>
       <ambientLight intensity={0.18} color="#283149" />
-      <pointLight position={[2.5, 1.8, 3]} intensity={22} distance={8} color="#ffc466" />
+      <pointLight ref={keyLight} position={[2.5, 1.8, 3]} intensity={22} distance={8} color="#ffc466" />
       <pointLight position={[-2.4, -1.5, 2]} intensity={1.8} distance={6} color="#4a5c8c" />
-      <mesh>
-        <sphereGeometry args={[1.55, 96, 64]} />
-        <meshPhysicalMaterial map={planetTexture} color="#ffffff" roughness={0.62} metalness={0.08} clearcoat={0.16} clearcoatRoughness={0.68} />
-      </mesh>
-      <PlanetRim />
-      <SolarFlare />
+      <NeuralCore sun={sun} />
+      <PlanetRim sun={sun} />
+      <SolarFlare sun={sun} />
       <RotatableRingSystem />
     </group>
   );
 };
 
-// Far camera + narrow fov = flat perspective, so the ring's near half doesn't balloon off-screen.
-const HeroScene = () => (
-  <Canvas camera={{ position: [0, 0, 17.4], fov: 20.2, near: 0.1, far: 80 }} dpr={[1, 2]} gl={{ antialias: true, alpha: true }}>
-    <ambientLight intensity={0.14} color="#6f7fa6" />
-    <CosmicDust />
-    <DeveloperCore />
-  </Canvas>
-);
+/* -------------------------------------------------------------------------- */
+/*  Scene: memoized so the 3.6s headline timer never re-reconciles it         */
+/* -------------------------------------------------------------------------- */
+const CAMERA = { position: [0, 0, 17.4], fov: 20.2, near: 0.1, far: 80 };
+const GL = { antialias: Q.aa, alpha: true, stencil: false, powerPreference: Q.power };
+// pan-y: vertical swipes scroll the page, horizontal drags spin the rings
+const CANVAS_STYLE = {
+  touchAction: "pan-y",
+  userSelect: "none",
+  WebkitUserSelect: "none",
+  WebkitTouchCallout: "none",
+  WebkitTapHighlightColor: "transparent",
+};
+
+// Drives the demand loop: renders at most `fps` frames/s (so 120/144Hz screens don't burn power)
+// and not at all while the hero is off-screen or the tab is hidden.
+const FrameTicker = ({ active, fps }) => {
+  const invalidate = useThree((s) => s.invalidate);
+  useEffect(() => {
+    if (!active) return undefined;
+    const interval = 1000 / fps - 2;
+    let raf;
+    let last = 0;
+    const tick = (now) => {
+      raf = requestAnimationFrame(tick);
+      if (document.hidden || now - last < interval) return;
+      last = now;
+      invalidate();
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [active, fps, invalidate]);
+  return null;
+};
+
+const HeroScene = memo(({ active }) => {
+  const [dpr, setDpr] = useState(Q.dpr);
+  const [fps, setFps] = useState(60);
+  const [warm, setWarm] = useState(false);
+
+  // don't judge performance while shaders compile and textures build
+  useEffect(() => {
+    const t = setTimeout(() => setWarm(true), 4000);
+    return () => clearTimeout(t);
+  }, []);
+
+  // after a mobile browser reclaims the GL context, draw again as soon as it is restored
+  const handleCreated = useCallback(({ gl, invalidate }) => {
+    gl.domElement.addEventListener("webglcontextrestored", () => invalidate());
+  }, []);
+
+  return (
+    <Canvas camera={CAMERA} dpr={[1, dpr]} frameloop="demand" gl={GL} style={CANVAS_STYLE} onCreated={handleCreated}>
+      <FrameTicker active={active} fps={fps} />
+      {warm && active && (
+        <PerformanceMonitor
+          flipflops={3}
+          bounds={() => [fps - 12, fps - 3]}
+          onDecline={() => { if (dpr > 1) setDpr((d) => Math.max(1, d - 0.25)); else setFps(30); }}
+          onIncline={() => { if (fps < 60) setFps(60); else setDpr((d) => Math.min(Q.dpr, d + 0.25)); }}
+          onFallback={() => setDpr(1)}
+        />
+      )}
+      <ambientLight intensity={0.14} color="#6f7fa6" />
+      <CosmicDust />
+      <DeveloperCore />
+    </Canvas>
+  );
+});
 
 /* -------------------------------------------------------------------------- */
 /*  Hero                                                                      */
 /* -------------------------------------------------------------------------- */
 const Hero = () => {
   const [index, setIndex] = useState(0);
+  const sectionRef = useRef(null);
+  const active = useInView(sectionRef);
 
+  // headline timer pauses while the hero is off-screen
   useEffect(() => {
+    if (!active) return undefined;
     const interval = setInterval(() => setIndex((prev) => (prev + 1) % headlines.length), 3600);
     return () => clearInterval(interval);
-  }, []);
+  }, [active]);
 
   return (
-    <section className="relative w-full h-screen mx-auto overflow-hidden bg-[#030812]">
+    <section ref={sectionRef} className="relative w-full h-screen mx-auto overflow-hidden bg-[#030812]" style={{ height: "100svh" }}>
       {/* 3D scene: receives pointer events so the rings can be dragged */}
-      <div className="absolute inset-0 z-0"><HeroScene /></div>
+      <div className="absolute inset-0 z-0" style={{ touchAction: "pan-y" }}><HeroScene active={active} /></div>
 
       <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_66%_43%,rgba(230,129,37,0.12),transparent_24%),radial-gradient(circle_at_6%_10%,rgba(8,31,61,0.24),transparent_32%),linear-gradient(180deg,rgba(1,5,13,0.05),rgba(1,5,13,0.6)_92%)]" />
       <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-36 bg-gradient-to-b from-[#050816]/90 to-transparent" />
 
-      <div className={`pointer-events-none absolute inset-0 top-[120px] z-10 max-w-7xl mx-auto ${styles.paddingX} flex flex-row items-start gap-5`}>
+      <div className={`pointer-events-none absolute inset-0 top-[120px] z-10 max-w-7xl mx-auto ${styles.paddingX} lg:-translate-x-[52px] flex flex-row items-start gap-5`}>
         <div className="flex flex-col justify-center items-center mt-5">
           <div className="w-5 h-5 rounded-full bg-[#ffc46b] shadow-[0_0_28px_rgba(255,196,107,0.85)]" />
           <div className="w-1 sm:h-80 h-40 bg-gradient-to-b from-[#ffc46b] via-[#b3401f] to-transparent" />
@@ -1198,7 +1567,7 @@ const Hero = () => {
             And you are here for a Reason
           </p>
 
-          <div className="min-h-[110px] sm:min-h-[100px] mt-2 flex items-start">
+          <div className="min-h-[150px] sm:min-h-[100px] mt-2 flex items-start">
             <AnimatePresence mode="wait">
               <motion.div
                 key={index}
@@ -1210,7 +1579,7 @@ const Hero = () => {
                 <p className="text-secondary font-medium lg:text-[20px] sm:text-[17px] text-[14px] mb-1">
                   {headlines[index].lead}
                 </p>
-                <p className={`${styles.heroSubText} text-white-100 leading-normal max-w-xl`}>
+                <p className={`${styles.heroSubText} text-white-100 leading-normal max-w-md lg:max-w-[30rem]`}>
                   <span>{headlines[index].prefix} </span>
                   <span className="text-[#ffd784] font-bold">{headlines[index].highlight}</span>
                 </p>
