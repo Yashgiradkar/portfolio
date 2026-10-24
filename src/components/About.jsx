@@ -8,7 +8,25 @@ import { Ideayaan } from "../assets";
 import { SectionWrapper } from "../hoc";
 import { fadeIn, textVariant } from "../utils/motion";
 
-const ServiceCard = ({ index, title, description, icon }) => (
+const ServiceIcon = ({ title }) => {
+  const svgProps = { viewBox: "0 0 72 72", fill: "none", stroke: "currentColor", strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round", className: "h-16 w-16 text-gold-light" };
+  if (title === "AI Agents") return <svg {...svgProps}><circle cx="36" cy="36" r="10" /><circle cx="17" cy="22" r="5" /><circle cx="55" cy="22" r="5" /><circle cx="17" cy="52" r="5" /><circle cx="55" cy="52" r="5" /><path d="m21 25 8 7m22-7-8 7m-22 17 8-7m22 7-8-7" /></svg>;
+  if (title === "RAG Systems") return <svg {...svgProps}><path d="M17 17h24l14 14v24H17z" /><path d="M41 17v14h14M25 38h22M25 47h16" /><circle cx="17" cy="53" r="6" /><path d="m21 50 8-4" /></svg>;
+  if (title === "LLM Applications") return <svg {...svgProps}><rect x="14" y="14" width="44" height="44" rx="8" /><path d="M27 29h18M27 36h10M27 43h14" /><path d="m48 48 5 5m0-5-5 5" /></svg>;
+  return <svg {...svgProps}><rect x="12" y="16" width="20" height="16" rx="3" /><rect x="40" y="16" width="20" height="16" rx="3" /><rect x="26" y="42" width="20" height="16" rx="3" /><path d="M22 32v5h28v-5M36 37v5" /></svg>;
+};
+
+const mindsetContainer = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.12 } },
+};
+
+const mindsetItem = {
+  hidden: { opacity: 0, y: 22 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: "easeOut" } },
+};
+
+const ServiceCard = ({ index, title, description }) => (
   <Tilt className='xs:w-[250px] w-full'>
     <motion.div
       variants={fadeIn("right", "spring", index * 0.4, 0.75)}
@@ -22,15 +40,10 @@ const ServiceCard = ({ index, title, description, icon }) => (
         }}
         className='bg-tertiary rounded-[20px] py-6 px-6 min-h-[290px] flex justify-evenly items-center flex-col text-center'
       >
-        <img
-          src={icon}
-          alt={`${title} icon`}
-          width='64'
-          height='64'
-          loading='lazy'
-          decoding='async'
-          className='w-16 h-16 object-contain'
-        />
+        <motion.div whileHover={{ y: -5, rotate: 4 }} transition={{ type: "spring", stiffness: 280 }} className='relative'>
+          <span className='absolute -inset-3 rounded-full bg-gold/10 blur-xl' />
+          <ServiceIcon title={title} />
+        </motion.div>
 
         <h3 className='text-white text-[20px] font-bold'>
           {title}
@@ -71,14 +84,20 @@ const About = () => {
       </div>
 
       {/* 2. Beyond the Code */}
-      <div className='mt-28'>
-        <motion.div variants={textVariant()}>
+      <motion.div
+        className='mt-28'
+        variants={mindsetContainer}
+        initial='hidden'
+        whileInView='show'
+        viewport={{ once: true, amount: 0.2 }}
+      >
+        <motion.div variants={mindsetItem}>
           <p className={styles.sectionSubText}>Mindset & Approach</p>
           <h2 className={styles.sectionHeadText}>Beyond the Code.</h2>
         </motion.div>
 
         <motion.div
-          variants={fadeIn("", "", 0.1, 1)}
+          variants={mindsetItem}
           className='mt-4 text-secondary text-[16.5px] sm:text-[17px] max-w-3xl leading-[30px] space-y-3'
         >
           <p>
@@ -94,15 +113,21 @@ const About = () => {
 
         {/* Proof of Product Thinking & Achievement */}
         <motion.div
-          variants={fadeIn("up", "spring", 0.3, 0.75)}
-          className='mt-10 bg-black-100 border border-gold/30 rounded-2xl p-6 sm:p-8 flex flex-col lg:flex-row items-center gap-8 shadow-card'
+          variants={mindsetItem}
+          whileHover={{ y: -4, borderColor: "rgba(214, 168, 75, 0.6)" }}
+          transition={{ duration: 0.3 }}
+          className='mt-10 bg-black-100 border border-gold/30 rounded-2xl p-6 sm:p-8 flex flex-col lg:flex-row items-center gap-8 shadow-card transition-shadow hover:shadow-[0_35px_120px_-15px_rgba(214,168,75,0.18)]'
         >
           {/* Zoomable Case Study Image */}
           <div
             className='relative group cursor-pointer w-full lg:w-[420px] flex-shrink-0 overflow-hidden rounded-xl bg-tertiary border border-white/10'
             onClick={() => setIsZoomed(true)}
           >
-            <img
+            <motion.img
+              initial={{ scale: 1.1, opacity: 0 }}
+              whileInView={{ scale: 1, opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, ease: "easeOut", delay: 0.18 }}
               src={Ideayaan}
               alt='HawkersCart 1st Prize — Ideayaan Award'
               loading='lazy'
@@ -121,12 +146,12 @@ const About = () => {
           {/* Achievement Content */}
           <div className='flex-1 flex flex-col justify-center'>
             <div className='flex flex-wrap items-center gap-2 mb-3'>
-              <span className='bg-gold/20 border border-gold text-gold-light font-bold px-3 py-1 rounded-full text-xs'>
+              <motion.span initial={{ opacity: 0, x: 14 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: 0.25, duration: 0.35 }} className='bg-gold/20 border border-gold text-gold-light font-bold px-3 py-1 rounded-full text-xs'>
                 🏆 1st Prize Winner
-              </span>
-              <span className='bg-tertiary border border-white/15 text-[#f2dfbd] font-semibold px-3 py-1 rounded-full text-xs'>
+              </motion.span>
+              <motion.span initial={{ opacity: 0, x: 14 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: 0.34, duration: 0.35 }} className='bg-tertiary border border-white/15 text-[#f2dfbd] font-semibold px-3 py-1 rounded-full text-xs'>
                 80+ Competing Teams
-              </span>
+              </motion.span>
             </div>
 
             <h3 className='text-white text-[22px] sm:text-[25px] font-bold leading-tight'>
@@ -134,7 +159,7 @@ const About = () => {
             </h3>
 
             {/* Bullet Points */}
-            <ul className='mt-4 space-y-3 text-secondary text-[14px] sm:text-[15px] leading-relaxed'>
+            <motion.ul variants={mindsetContainer} className='mt-4 space-y-3 text-secondary text-[14px] sm:text-[15px] leading-relaxed'>
               <li className='flex items-start gap-2.5'>
                 <span className='text-gold font-bold mt-1 text-base'>•</span>
                 <span>
@@ -162,7 +187,7 @@ const About = () => {
                   <strong className='text-white font-semibold'>Bridged Product & Business Strategy</strong> with practical implementation, leveraging <strong className='text-white font-semibold'>Product Thinking</strong> and <strong className='text-white font-semibold'>Technical Communication</strong> to pitch the winning solution.
                 </span>
               </li>
-            </ul>
+            </motion.ul>
 
             {/* Capability Hashtags / Competency Pills */}
             <div className='mt-6 flex flex-wrap gap-2'>
@@ -174,17 +199,22 @@ const About = () => {
                 "Customer Discovery",
                 "Solution Design",
               ].map((tag) => (
-                <span
+                <motion.span
                   key={tag}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  whileHover={{ y: -2, borderColor: "rgba(214, 168, 75, 0.8)" }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.35 + (tag.length * 0.008), duration: 0.25 }}
                   className='text-xs px-3 py-1.5 rounded-md bg-tertiary border border-gold/25 text-[#f2dfbd] font-medium hover:border-gold transition-colors'
                 >
                   #{tag}
-                </span>
+                </motion.span>
               ))}
             </div>
           </div>
         </motion.div>
-      </div>
+      </motion.div>
 
       {/* Lightbox Zoom Modal */}
       <AnimatePresence>

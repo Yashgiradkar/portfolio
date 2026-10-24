@@ -25,9 +25,9 @@ const ProjectCard = ({
           scale: 1,
           speed: 450,
         }}
-        className='bg-tertiary p-5 rounded-2xl sm:w-[360px] w-full'
+        className='group bg-tertiary p-5 rounded-2xl sm:w-[360px] w-full border border-transparent hover:border-gold/35 transition-colors duration-300'
       >
-        <div className='relative w-full h-[230px]'>
+        <div className='relative w-full h-[230px] overflow-hidden rounded-2xl'>
           <img
             src={image}
             alt={`Screenshot and preview of ${name}`}
@@ -35,7 +35,7 @@ const ProjectCard = ({
             decoding='async'
             width='360'
             height='230'
-            className='w-full h-full object-cover rounded-2xl'
+            className='w-full h-full object-cover rounded-2xl transition-transform duration-700 group-hover:scale-105'
           />
 
           <div className='absolute inset-0 flex justify-end m-3 card-img_hover'>
@@ -82,7 +82,7 @@ const Works = () => {
   return (
     <>
       <motion.div variants={textVariant()}>
-        <p className={`${styles.sectionSubText} `}>My work</p>
+        <p className={styles.sectionSubText}>My work</p>
         <h2 className={`${styles.sectionHeadText}`}>Projects.</h2>
       </motion.div>
 
@@ -94,7 +94,10 @@ const Works = () => {
           {/* Engineering Manifesto Callout */}
           <div className='relative overflow-hidden rounded-2xl bg-gradient-to-r from-gold/30 via-tertiary to-black-100 p-[1px] shadow-card'>
             <div className='bg-tertiary/90 backdrop-blur-md px-6 py-5 rounded-2xl border-l-4 border-gold flex items-start gap-4'>
-              <span className='flex h-3 w-3 rounded-full bg-gold animate-ping mt-1.5 flex-shrink-0' />
+              <span className='relative flex h-5 w-5 mt-0.5 flex-shrink-0'>
+                <span className='absolute inset-1 rounded-full bg-gold animate-ping' />
+                <span className='relative m-auto h-2 w-2 rounded-full bg-gold' />
+              </span>
               <div className='space-y-1'>
                 <p className='text-[16px] sm:text-[18px] text-white font-bold leading-snug tracking-tight'>
                   <span className='text-secondary font-normal'>Claims are easy. </span>
@@ -186,4 +189,4 @@ const Works = () => {
   );
 };
 
-export default SectionWrapper(Works, "");
+export default SectionWrapper(Works, "projects");

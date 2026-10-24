@@ -65,7 +65,7 @@ const AivonFlagship = () => {
       <div className='space-y-5'>
         {/* Badges */}
         <div className='inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-gold/20 to-[#b9792e]/10 border border-gold/50'>
-          <span className='w-3.5 h-3.5 rounded-full bg-gold' />
+          <motion.span animate={{ scale: [1, 1.5, 1], opacity: [1, 0.45, 1] }} transition={{ duration: 1.8, repeat: Infinity }} className='w-3.5 h-3.5 rounded-full bg-gold shadow-[0_0_12px_rgba(255,215,132,0.9)]' />
           <span className='text-[#f2dfbd] font-mono text-[11px] font-bold uppercase tracking-[0.15em]'>
             The AI Customer Support Platform
           </span>
@@ -120,7 +120,7 @@ const AivonFlagship = () => {
               className='p-4 rounded-xl bg-tertiary/70 border border-white/[0.08] hover:border-gold/40 transition-all group'
             >
               <div className='flex items-start gap-3'>
-                <span className='text-xl flex-shrink-0 mt-0.5'>{item.icon}</span>
+                <motion.span whileHover={{ rotate: 12, scale: 1.2 }} className='text-xl flex-shrink-0 mt-0.5'>{item.icon}</motion.span>
                 <div className='space-y-1'>
                   <p className='text-secondary text-[11.5px] line-through decoration-white/25 leading-snug'>
                     {item.problem}
@@ -154,9 +154,9 @@ const AivonFlagship = () => {
               viewport={{ once: true }}
               className='flex items-center gap-3 p-3.5 rounded-xl bg-black-100/80 border border-white/[0.06] hover:border-gold/35 transition-all group cursor-default'
             >
-              <span className='text-base w-8 h-8 flex items-center justify-center rounded-lg bg-tertiary border border-white/10 flex-shrink-0'>
+              <motion.span whileHover={{ rotate: [0, -8, 8, 0], scale: 1.1 }} className='text-base w-8 h-8 flex items-center justify-center rounded-lg bg-tertiary border border-white/10 flex-shrink-0'>
                 {cap.icon}
-              </span>
+              </motion.span>
               <div className='min-w-0'>
                 <p className='text-white font-semibold text-[12.5px] group-hover:text-[#f2dfbd] transition-colors leading-tight'>
                   {cap.name}

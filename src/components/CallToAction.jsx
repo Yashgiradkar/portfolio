@@ -49,7 +49,7 @@ const CallToAction = () => {
                 href='#contact'
                 className='bg-gradient-to-r from-gold to-[#b9792e] hover:from-[#e6bd68] hover:to-gold py-3 px-6 rounded-xl text-[#17130e] font-bold text-sm shadow-md shadow-gold/30 transition-all transform active:scale-95'
               >
-                Send Message ⬇
+                Send Message
               </a>
             </div>
           </div>

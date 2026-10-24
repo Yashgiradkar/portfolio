@@ -41,25 +41,35 @@ const productionRealities = [
 const ExperienceCard = ({ experience }) => {
   return (
     <VerticalTimelineElement
-      visible={true}
       contentStyle={{
         background: "#1b150e",
         color: "#fff",
       }}
       contentArrowStyle={{ borderRight: "7px solid #2b2115" }}
       date={experience.date}
-      iconStyle={{ background: experience.iconBg }}
+      iconStyle={{ background: experience.iconBg, boxShadow: "0 0 0 4px rgba(214, 168, 75, 0.38), 0 0 22px rgba(214, 168, 75, 0.22)" }}
       icon={
-        <div className='flex justify-center items-center w-full h-full'>
+        <motion.div
+          initial={{ scale: 0.7, rotate: -12, opacity: 0 }}
+          whileInView={{ scale: 1, rotate: 0, opacity: 1 }}
+          viewport={{ once: true, amount: 0.7 }}
+          transition={{ type: "spring", stiffness: 220, damping: 16 }}
+          className='flex justify-center items-center w-full h-full'
+        >
           <img
             src={experience.icon}
             alt={experience.company_name}
             className='w-[60%] h-[60%] object-contain'
           />
-        </div>
+        </motion.div>
       }
     >
-      <div>
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.3 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+      >
         <h3 className='text-white text-[24px] font-bold'>{experience.title}</h3>
         <p
           className='text-secondary text-[16px] font-semibold'
@@ -67,16 +77,20 @@ const ExperienceCard = ({ experience }) => {
         >
           {experience.company_name}
         </p>
-      </div>
+      </motion.div>
 
       <ul className='mt-5 list-disc ml-5 space-y-2'>
         {experience.points.map((point, index) => (
-          <li
+          <motion.li
             key={`experience-point-${index}`}
+            initial={{ opacity: 0, x: -10 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ delay: 0.12 + index * 0.1, duration: 0.35, ease: "easeOut" }}
             className='text-white-100 text-[14px] pl-1 tracking-wider leading-relaxed'
           >
             {point}
-          </li>
+          </motion.li>
         ))}
       </ul>
     </VerticalTimelineElement>
@@ -110,7 +124,7 @@ const Experience = () => {
                 <span className='text-[11px] font-mono font-bold text-[#f2dfbd] uppercase tracking-wider bg-black-100/70 px-2.5 py-0.5 rounded-full border border-white/10'>
                   {item.tag}
                 </span>
-                <span className='h-2 w-2 rounded-full bg-gold animate-pulse' />
+                <motion.span animate={{ scale: [1, 1.8, 1] }} transition={{ duration: 1.8, repeat: Infinity, delay: index * 0.2 }} className='h-2 w-2 rounded-full bg-gold shadow-[0_0_12px_rgba(255,215,132,0.9)]' />
               </div>
 
               <div className='space-y-2'>
@@ -166,7 +180,7 @@ const Experience = () => {
                     key={`reality-${idx}`}
                     className='inline-flex items-center gap-1.5 text-xs sm:text-[13px] font-medium px-3.5 py-1.5 rounded-lg bg-black-100/90 border border-white/10 text-white-100 hover:border-gold hover:text-white transition-colors duration-200'
                   >
-                    <span>{reality.icon}</span>
+                    <motion.span whileHover={{ rotate: [0, -10, 10, 0], scale: 1.18 }} transition={{ duration: 0.35 }}>{reality.icon}</motion.span>
                     <span>{reality.label}</span>
                   </span>
                 ))}
@@ -189,7 +203,7 @@ const Experience = () => {
 
       {/* Timeline Section */}
       <div className='mt-16 flex flex-col'>
-        <VerticalTimeline animate={false}>
+        <VerticalTimeline animate={true} lineColor='#d6a84b'>
           {experiences.map((experience, index) => (
             <ExperienceCard
               key={`experience-${index}`}
@@ -202,4 +216,4 @@ const Experience = () => {
   );
 };
 
-export default SectionWrapper(Experience, "work");
+export default SectionWrapper(Experience, "experience");

@@ -22,10 +22,11 @@ const detectTier = () => {
   return "mid";
 };
 
+// dust, rocks and ringDust were reduced for a cleaner look.
 const Q = {
-  high: { dust: 940, bandW: 8192, rocks: 80, ringDust: 2600, dpr: 2, aniso: 16, seg: [96, 64], rays: 20, aa: true, power: "default" },
-  mid: { dust: 700, bandW: 4096, rocks: 60, ringDust: 1800, dpr: 1.75, aniso: 16, seg: [64, 48], rays: 16, aa: !COARSE, power: "default" },
-  low: { dust: 400, bandW: 3072, rocks: 40, ringDust: 1000, dpr: 1.75, aniso: 8, seg: [48, 32], rays: 10, aa: false, power: "low-power" },
+  high: { dust: 640, bandW: 8192, rocks: 48, ringDust: 1500, dpr: 2, aniso: 16, seg: [96, 64], rays: 20, aa: true, power: "default" },
+  mid: { dust: 480, bandW: 4096, rocks: 36, ringDust: 1100, dpr: 1.75, aniso: 16, seg: [64, 48], rays: 16, aa: !COARSE, power: "default" },
+  low: { dust: 280, bandW: 3072, rocks: 24, ringDust: 600, dpr: 1.75, aniso: 8, seg: [48, 32], rays: 10, aa: false, power: "low-power" },
 }[detectTier()];
 
 // Portrait screens (phones, tablets held upright) get the compact layout.
@@ -189,6 +190,200 @@ const CosmicDust = () => {
 };
 
 /* -------------------------------------------------------------------------- */
+/*  Meteor showers: a burst across the sky, then a second burst that sweeps   */
+/*  the headline area (alternating fiery and icy-blue streaks), then quiet    */
+/* -------------------------------------------------------------------------- */
+const MET_MAIN = Q.dust <= 300 ? 4 : 6;       // meteors in the main burst
+const MET_NEAR = Q.dust <= 300 ? 3 : 4;       // meteors in the burst near the headline
+const MET_POOL = MET_MAIN + MET_NEAR;
+const MET_FIRST = 1.2;                        // seconds before the first shower (almost immediately on load)
+const MET_CYCLE = 24;                         // seconds between showers
+const MET_NEAR_OFFSET = 9;                    // headline burst follows the main burst by this many seconds
+const MET_NEAR_OFFSET_FIRST = 3;              // on the very first shower, the headline burst follows sooner
+const MET_HEADINGS = [-55, -125, -40];        // travel direction per shower, degrees (-90 = straight down)
+
+const meteorVertex = `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+// The quad runs tail -> head along +x. Everything is measured in "widths" so the
+// head stays round and the tail stays thin whatever the meteor's length.
+const meteorFragment = `
+  varying vec2 vUv;
+  uniform float uLen; uniform float uWid; uniform float uAlpha; uniform float uTime; uniform float uSeed; uniform float uIce;
+  void main() {
+    float x = vUv.x * uLen;
+    float bn = (uLen - 0.5 * uWid - x) / uWid;          // distance behind the head
+    float span = max(uLen / uWid - 0.5, 0.001);
+    float tt = clamp(bn / span, 0.0, 1.0);               // 0 at head, 1 at tail tip
+    float yn = vUv.y - 0.5;
+
+    float fall = pow(1.0 - tt, 2.2);
+    float wob = sin(bn * 9.0 - uTime * 14.0 + uSeed) * 0.006 * tt;
+    float y = yn + wob;
+    float cw = mix(0.010, 0.032, pow(1.0 - tt, 2.0));    // streak thickens toward the head
+    float core = exp(-(y * y) / (cw * cw));
+    float glow = exp(-(y * y) / (cw * cw * 22.0));
+    float flick = 0.82 + 0.18 * sin(bn * 11.0 - uTime * 22.0 + uSeed * 1.7) * sin(bn * 5.0 - uTime * 9.0);
+    float tailMask = smoothstep(-0.05, 0.08, bn);        // nothing ahead of the head
+
+    float d2 = bn * bn + yn * yn;
+    float head = exp(-d2 / 0.0030);
+    float halo = exp(-d2 / 0.030);
+
+    vec3 hot = mix(vec3(1.0, 0.92, 0.68), vec3(0.92, 0.96, 1.0), uIce);
+    vec3 orange = mix(vec3(1.0, 0.46, 0.10), vec3(0.55, 0.72, 1.0), uIce);
+    vec3 red = mix(vec3(0.75, 0.13, 0.03), vec3(0.22, 0.28, 0.85), uIce);
+    vec3 tc = mix(hot, orange, smoothstep(0.0, 0.3, tt));
+    tc = mix(tc, red, smoothstep(0.3, 1.0, tt));
+
+    vec3 col = tc * (core * 1.5 + glow * 0.45) * fall * flick * tailMask;
+    col += hot * head * 2.2 + orange * halo * 0.55;
+    col *= (1.0 - smoothstep(0.35, 0.5, abs(yn))) * smoothstep(0.0, 0.03, vUv.x) * uAlpha;
+    gl_FragColor = vec4(col, 0.0);
+  }
+`;
+
+const MeteorShower = () => {
+  const { camera, size } = useThree();
+  const reduceMotion = useMemo(
+    () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches,
+    []
+  );
+  const geometry = useMemo(() => new THREE.PlaneGeometry(1, 1), []);
+  const mats = useMemo(() => Array.from({ length: MET_POOL }, (_, i) => new THREE.ShaderMaterial({
+    uniforms: {
+      uLen: { value: 1 }, uWid: { value: 0.5 }, uAlpha: { value: 0 }, uTime: { value: 0 }, uSeed: { value: i * 5.3 }, uIce: { value: 0 },
+    },
+    vertexShader: meteorVertex,
+    fragmentShader: meteorFragment,
+    transparent: true,
+    depthWrite: false,
+    ...GLOW_BLEND,
+  })), []);
+  const meshes = useRef([]);
+  const head = useMemo(() => new THREE.Vector3(), []);
+  const sim = useRef({
+    t: 0,
+    nextShower: MET_FIRST,
+    nextNear: Infinity,
+    shower: 0,
+    slots: Array.from({ length: MET_POOL }, () => ({
+      state: 0, // 0 idle, 1 waiting for its turn, 2 flying
+      startAt: 0, age: 0, dur: 1, len: 1, wid: 0.5, dim: 1, ice: 0,
+      dir: new THREE.Vector2(), from: new THREE.Vector3(), to: new THREE.Vector3(),
+    })),
+  });
+
+  useEffect(() => () => { geometry.dispose(); mats.forEach((m) => m.dispose()); }, [geometry, mats]);
+
+  useFrame((_, delta) => {
+    if (reduceMotion) return;
+    const s = sim.current;
+    const d = Math.min(delta, 0.05);
+    s.t += d;
+
+    // plan one meteor's route; `near` biases it toward the headline block (upper left, or the top on portrait)
+    const launch = (slot, delay, heading, near, ice) => {
+      const depth = Math.random();                          // 0 = nearer, 1 = farther
+      const z = -(3 + depth * 5);                           // always behind the planet
+      const dist = camera.position.z - z;
+      const halfH = dist * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
+      const halfW = halfH * (size.width / size.height);
+      const ang = THREE.MathUtils.degToRad(heading + (Math.random() - 0.5) * 10);
+      slot.dir.set(Math.cos(ang), Math.sin(ang));
+      const travel = Math.min(halfH * 1.5, halfW * 2.2) * (0.6 + Math.random() * 0.3);
+      let nx;
+      let ny;
+      if (near) {
+        const compact = isCompact(size);
+        nx = compact ? Math.random() * 1.8 - 0.9 : -0.85 + Math.random() * 0.8;
+        ny = compact ? 0.1 + Math.random() * 0.75 : -0.1 + Math.random() * 0.9;
+      } else {
+        nx = Math.random() * 1.7 - 0.85;
+        ny = Math.random() * 1.2 - 0.45;
+      }
+      const cx = nx * halfW;
+      const cy = ny * halfH;
+      slot.from.set(cx - slot.dir.x * travel / 2, cy - slot.dir.y * travel / 2, z);
+      slot.to.set(cx + slot.dir.x * travel / 2, cy + slot.dir.y * travel / 2, z);
+      const k = 0.8 + Math.random() * 0.4;
+      slot.ice = ice ? 1 : 0;
+      slot.wid = (ice ? 0.34 : 0.5) * k;
+      slot.len = (ice ? 1.7 + Math.random() * 1.2 : 1.1 + Math.random() * 1.1) * k;
+      slot.dur = ice ? 1.0 + Math.random() * 0.7 : 1.4 + Math.random() * 0.9;
+      slot.dim = (1 - depth * 0.35) * (near ? 0.85 : 1);
+      slot.startAt = s.t + delay;
+      slot.age = 0;
+      slot.state = 1;
+    };
+
+    // main burst: staggered over ~3.5s, all heading the same way
+    if (s.t >= s.nextShower) {
+      const heading = MET_HEADINGS[s.shower % MET_HEADINGS.length];
+      s.nextShower = s.t + MET_CYCLE;
+      // the very first shower (on page load) gets its headline burst sooner
+      s.nextNear = s.t + (s.shower === 0 ? MET_NEAR_OFFSET_FIRST : MET_NEAR_OFFSET);
+      s.shower += 1;
+      for (let i = 0; i < MET_MAIN; i += 1) {
+        if (s.slots[i].state === 0) launch(s.slots[i], i * 0.55 + Math.random() * 0.5, heading, false, false);
+      }
+    }
+
+    // headline burst: sweeps the area around the text, every other meteor an icy blue streak
+    if (s.t >= s.nextNear) {
+      s.nextNear = Infinity;
+      const heading = MET_HEADINGS[s.shower % MET_HEADINGS.length];
+      for (let j = 0; j < MET_NEAR; j += 1) {
+        const slot = s.slots[MET_MAIN + j];
+        if (slot.state === 0) launch(slot, j * 0.6 + Math.random() * 0.5, heading, true, j % 2 === 1);
+      }
+    }
+
+    s.slots.forEach((slot, i) => {
+      const mesh = meshes.current[i];
+      if (!mesh) return;
+      if (slot.state === 1) {
+        if (s.t < slot.startAt) return;
+        slot.state = 2;
+      }
+      if (slot.state !== 2) return;
+
+      slot.age += d;
+      const k = slot.age / slot.dur;
+      if (k >= 1) { slot.state = 0; mesh.visible = false; return; }
+
+      const len = slot.len * (0.4 + 0.6 * THREE.MathUtils.smoothstep(k, 0, 0.3)); // tail grows as it ignites
+      const env = THREE.MathUtils.smoothstep(k, 0, 0.12) * (1 - THREE.MathUtils.smoothstep(k, 0.7, 1)); // ignite, burn out
+      head.lerpVectors(slot.from, slot.to, k);
+      const back = len / 2 - slot.wid * 0.5;
+      mesh.position.set(head.x - slot.dir.x * back, head.y - slot.dir.y * back, head.z);
+      mesh.rotation.z = Math.atan2(slot.dir.y, slot.dir.x);
+      mesh.scale.set(len, slot.wid, 1);
+      const u = mats[i].uniforms;
+      u.uLen.value = len;
+      u.uWid.value = slot.wid;
+      u.uAlpha.value = env * slot.dim;
+      u.uTime.value = s.t;
+      u.uIce.value = slot.ice;
+      mesh.visible = true;
+    });
+  });
+
+  return (
+    <group>
+      {mats.map((m, i) => (
+        <mesh key={i} ref={(el) => { meshes.current[i] = el; }} geometry={geometry} material={m} visible={false} frustumCulled={false} raycast={noRaycast} />
+      ))}
+    </group>
+  );
+};
+
+/* -------------------------------------------------------------------------- */
 /*  Moons                                                                     */
 /* -------------------------------------------------------------------------- */
 const BADGE_SIZE = 256;
@@ -327,11 +522,12 @@ const BADGES = [
   },
 ];
 
+// `layer` is an index into RING_LAYERS (now 0 or 1). Moons alternate between the two rings.
 const TECH_NODES = [
-  { name: "Signal", layer: 2, angle: 0.2, size: 0.21, badge: 0 },
-  { name: "Cloud", layer: 1, angle: 0.63, size: 0.24, badge: 1 },
-  { name: "Kernel", layer: 0, angle: 0.98, size: 0.22, badge: 4 },
-  { name: "Pulse", layer: 2, angle: 3.48, size: 0.2, badge: 6 },
+  { name: "Signal", layer: 1, angle: 0.2, size: 0.21, badge: 0 },
+  { name: "Cloud", layer: 0, angle: 0.63, size: 0.24, badge: 1 },
+  { name: "Kernel", layer: 1, angle: 0.98, size: 0.22, badge: 4 },
+  { name: "Pulse", layer: 0, angle: 3.48, size: 0.2, badge: 6 },
 ];
 
 // Built once, after Poppins is ready (previously built twice).
@@ -532,18 +728,16 @@ const RING_ROTATION = [RING_TILT, 0, RING_ROLL, "ZXY"];
 const RING_INNER = 2.05;
 const RING_OUTER = 4.7;
 
+// Primary ring layers: reduced from three to two.
 const RING_LAYERS = [
   { radius: 2.9, w: 0.3, rotation: RING_ROTATION, color: "#ffd784" },
-  { radius: 3.55, w: 0.3, rotation: RING_ROTATION, color: "#f7d09a" },
   { radius: 4.2, w: 0.3, rotation: RING_ROTATION, color: "#ffb84d" },
 ];
 
+// Orbit text bands: reduced from five to two (one inside the inner ring, one in the gap between the rings).
 const DATA_LANES = [
   { radius: 2.38, w: 0.1, dense: true, speed: 0.7, color: "#ffe2a8" },
-  { radius: 2.66, w: 0.1, dense: true, speed: 1.3, color: "#ffc46b" },
-  { radius: 3.22, w: 0.1, dense: true, speed: 0.9, color: "#ffe2a8" },
-  { radius: 3.88, w: 0.1, dense: true, speed: 1.2, color: "#ffc46b" },
-  { radius: 4.5, w: 0.1, dense: true, speed: 0.8, color: "#ffe2a8" },
+  { radius: 3.55, w: 0.1, dense: true, speed: 1.2, color: "#ffc46b" },
 ];
 
 const BAND_TEXTURE_WIDTH = Q.bandW;
@@ -732,7 +926,7 @@ const RingDebris = ({ phase }) => {
         <meshStandardMaterial color="#1b1410" roughness={0.95} metalness={0.1} emissive="#2a1a0a" emissiveIntensity={0.45} flatShading />
       </instancedMesh>
       <points geometry={dust} raycast={noRaycast}>
-        <pointsMaterial color="#ffd9a0" size={0.075} sizeAttenuation transparent opacity={0.55} depthWrite={false} blending={THREE.AdditiveBlending} />
+        <pointsMaterial color="#ffd9a0" size={0.075} sizeAttenuation transparent opacity={0.45} depthWrite={false} blending={THREE.AdditiveBlending} />
       </points>
     </group>
   );
@@ -1415,7 +1609,8 @@ const RotatableRingSystem = () => {
       <group rotation={RING_ROTATION}>
         <RingDisc phase={phase} />
         <RingDebris phase={phase} />
-        {DATA_LANES.map((lane, i) => <RingTextBand key={lane.radius} layer={lane} index={i + 3} phase={phase} />)}
+        {/* stagger index continues after the ring layers, so it follows RING_LAYERS.length */}
+        {DATA_LANES.map((lane, i) => <RingTextBand key={lane.radius} layer={lane} index={i + RING_LAYERS.length} phase={phase} />)}
       </group>
       {RING_LAYERS.map((layer, index) => (
         <RingLayer key={layer.radius} layer={layer} index={index} phase={phase} />
@@ -1524,6 +1719,7 @@ const HeroScene = memo(({ active }) => {
       )}
       <ambientLight intensity={0.14} color="#6f7fa6" />
       <CosmicDust />
+      <MeteorShower />
       <DeveloperCore />
     </Canvas>
   );

@@ -37,12 +37,16 @@ export const navLinks = [
         title: "About",
     },
     {
-        id: "work",
-        title: "Work",
+        id: "projects",
+        title: "Projects",
+    },
+    {
+        id: "experience",
+        title: "Experience",
     },
     {
         id: "contact",
-        title: "Contact",
+        title: "Connect",
     },
 ];
 
@@ -50,22 +54,18 @@ const services = [
     {
         title: "AI Agents",
         description: "AI that can understand, decide & act.",
-        icon: creator,
     },
     {
         title: "RAG Systems",
         description: "Turn your knowledge into intelligent answers.",
-        icon: web,
     },
     {
         title: "LLM Applications",
         description: "Build smarter products with GenAI.",
-        icon: mobile,
     },
     {
         title: "Backend Systems",
         description: "Scalable APIs and microservices built for production.",
-        icon: backend,
     },
 ];
 
